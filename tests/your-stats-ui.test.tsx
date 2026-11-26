@@ -199,7 +199,11 @@ describe('a copy of a library list', () => {
   it('shows the library deck’s recorded results, names it, and adds your record without a provisional rating', async () => {
     const copy = saved({ ...RATED.deck, name: 'Dexter, renamed', sideboard: [] });
     const tile = renderToStaticMarkup(<DeckTile d={copy} />);
-    expect(tile).toMatch(/\d+%<\/b> in [\d,]+ Swiss games/);
+    // the ratings' pool has Swiss games only when it holds a recorded event of the current simulator version; on the
+    // re-rating of 2026-11-25 (SIM_VERSION 13, rating runs only, the events are version 9's) no row has a Swiss record, and
+    // the tile and the deck page then show none (no "Swiss win rate")
+    if (RATINGS.decks.find((r) => r.name === RATED.deck.name)?.gamesRecord) expect(tile).toMatch(/\d+%<\/b> in [\d,]+ Swiss games/);
+    else expect(tile).not.toContain('Swiss games');
     expect(tile).toContain(`Same list as ${RATED.deck.name}`);
     expect(tile).toContain('tierb tierb-sim');
     // the same recorded Sim tier as the library deck (choom.gg's editorial tier belongs to the library entry, not the list)
@@ -219,7 +223,9 @@ describe('a copy of a library list', () => {
     const lib = renderToStaticMarkup(<DeckRecordPanel d={RATED} headingId="h" />);
     expect(lib).toContain('<h3 class="rec-sub">Your tournaments</h3>');
     expect(lib).not.toContain('Same list as');
-    expect(renderToStaticMarkup(<DeckTile d={RATED} />)).not.toContain('of your tournaments');
+    // the tile leads with the Swiss record when there is one, and falls back to your tournaments' record when there is not
+    // (no Swiss record in the ratings' pool since the re-rating of 2026-11-25, see above)
+    expect(renderToStaticMarkup(<DeckTile d={RATED} />).includes('of your tournaments')).toBe(!RATINGS.decks.find((r) => r.name === RATED.deck.name)?.gamesRecord);
     // the whole page renders for the copy
     expect(renderToStaticMarkup(<DeckProfilePage file={copy.file} />)).toContain('Same list as');
   });

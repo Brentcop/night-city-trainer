@@ -379,13 +379,16 @@ describe('the split of 2026-11-16', () => {
     // the (9, hard) entry also takes the rating series' traced runs and the Hard telemetry since 2026-11-24 (src/lib/seriesImpact.ts):
     // the seasons are pinned, and the season-3 figures exactly while nothing else is in that entry
     const seasonsOf = (e: { simVersion: number; bot: string; sources: { kind: string; season?: number }[] }) => [e.simVersion, e.bot, e.sources.filter((s) => s.kind !== 'series' && !(e.simVersion === 9 && s.kind === 'analysis')).map((s) => s.season ?? s.kind)];
+    // the (13, hard) entry (since the re-rating of 2026-11-25) holds the rating series' runs alone
     expect(card.entries.map(seasonsOf)).toEqual([
       [5, 'deep', ['analysis', 1, 2]],
       [9, 'hard', [3]],
+      [13, 'hard', []],
     ]);
     expect(deck.entries.map(seasonsOf)).toEqual([
       [5, 'deep', [1, 2]],
       [9, 'hard', [3]],
+      [13, 'hard', []],
     ]);
     const n = (cards: Record<string, { n: number }>) => Object.values(cards).reduce((k, v) => k + v.n, 0);
     expect([Object.keys(card.entries[0]!.cards).length, n(card.entries[0]!.cards)]).toEqual([90, 277_376]);
@@ -415,7 +418,7 @@ describe('check:data', () => {
     const r = checkData({ ...base, cardImpact, deckImpact, seasons, runs });
     expect(r.failures.filter((x) => x.includes('impact'))).toEqual([]);
     expect(r.passed.some((x) => x.startsWith('data/seasons/deck-impact.json is keyed by list fingerprint and kept by simulator version and bot'))).toBe(true);
-    expect(r.passed.some((x) => x.startsWith('data/seasons/impact.json is kept by simulator version and bot (2 entries'))).toBe(true);
+    expect(r.passed.some((x) => x.startsWith('data/seasons/impact.json is kept by simulator version and bot (3 entries'))).toBe(true);
     // a season counted under another pair than its manifest names fails
     const wrong = checkData({ ...base, cardImpact, deckImpact, seasons: [{ season: 3, key: { simVersion: 9, bot: 'medium' } }] });
     expect(wrong.failures).toContain('data/seasons impact files: season 3 was played on simulator version 9, medium bot (its manifest) but is counted under simulator version 9, hard bot');

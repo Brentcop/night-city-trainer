@@ -127,14 +127,19 @@ describe('deck and matchup facts equal the files they read', () => {
     RATINGS.decks.forEach((row, i) => {
       const d = deckCompetitive(row.name, { ratings: RATINGS, index: INDEX, h2h: H2H });
       expect(d.rating).toMatchObject({ value: row.rating, position: i + 1, of: RATINGS.decks.length, ratedGames: row.games, wrField: row.wrField, lo: row.wrFieldLo, hi: row.wrFieldHi, wrMeta: row.wrMeta });
-      expect(d.swiss?.matchRecord).toBe(row.matches);
-      expect(d.swiss?.gameRecord).toBe(row.gamesRecord);
+      // a row with no Swiss match in the pool (every rated game a rating run's, as on SIM_VERSION 13 before an event is
+      // recorded on it) has an empty match record, and the facts give no Swiss record
+      if (row.matches) {
+        expect(d.swiss?.matchRecord).toBe(row.matches);
+        expect(d.swiss?.gameRecord).toBe(row.gamesRecord);
+      } else expect(d.swiss).toBeNull();
       expect(d.events).toBe(row.events);
       expect(d.titles, row.name).toBe(row.titles);
       expect(d.swissTopEight).toBe(row.top8);
       expect(d.topCutAppearances).toBeLessThanOrEqual(d.swissTopEight);
       expect(d.tier).toEqual(simTier(row));
-      expect(d.finishes.length).toBe(row.events);
+      // every event the deck entered is a finish; the ratings count those of their own pool (same simulator version)
+      expect(d.finishes.filter((f) => d.simVersion === null || f.simVersion === d.simVersion).length).toBe(row.events);
       expect(d.file).toBe(row.file);
       expect(d).not.toHaveProperty('top8');
     });

@@ -14,6 +14,8 @@ import { refreshArt, setArtEnabled } from '../src/ui/art';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import { RATINGS, SEASONS } from '../src/data/index';
 import { isHistorical } from '../src/lib/playedRecord';
+import { TOURNAMENT_INDEX } from '../src/data/tournamentIndex';
+import { eventFinishes } from '../src/lib/deckRecord';
 import { seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
@@ -57,10 +59,16 @@ describe('deck profile: recorded results first', () => {
     expect(rec).toBeLessThan(html.indexOf('Decklist'));
     // tiles with their samples
     // UX-8: each figure is named for its source (Swiss record, power rating, finals or seasons vs the meta)
-    for (const label of ['Games played', 'Swiss win rate', 'Going first / second', 'Power rank', 'Event finishes']) expect(html).toContain(label);
+    // the ratings' pool has Swiss games only when it holds a recorded event of the current simulator version; on the
+    // re-rating of 2026-11-25 (SIM_VERSION 13, rating runs only, the events are version 9's) no row has a Swiss record, and
+    // the tile and the deck page then show none (no "Swiss win rate")
+    const swiss = !!RATINGS.decks.find((r) => r.file === RECORDED)?.gamesRecord;
+    for (const label of ['Games played', 'Going first / second', 'Power rank', 'Event finishes', ...(swiss ? ['Swiss win rate'] : [])]) expect(html).toContain(label);
     expect(html).toMatch(/Finals vs the meta|Seasons vs the meta/);
-    expect(html).toMatch(/the raw record in \d+ games of Swiss rounds/);
-    expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
+    if (swiss) {
+      expect(html).toMatch(/the raw record in \d+ games of Swiss rounds/);
+      expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
+    } else expect(html).not.toContain('Swiss win rate');
     // a wrong ordinal ("1th", "22th"); 11th, 12th and 13th are right (a deck finished 12th of 47 in event 8)
     expect(html).not.toMatch(/\d+th pct|(?<!1)[123]th\b/);
     for (const [s, wrong] of [['1th', true], ['2th', true], ['23th', true], ['11th', false], ['12th of 47', false], ['113th', false], ['4th', false]] as const)
@@ -115,10 +123,15 @@ describe('deck profile: recorded results first', () => {
     expect(RATINGS.decks.some((r) => r.name === d.deck.name)).toBe(true);
     expect(html).toContain('Recorded results');
     expect(html).not.toContain('No recorded games');
-    expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
-    // it was never in a season: its record is historical only when the recorded games and ratings are from an older
-    // simulator (version 9 since SIM_VERSION 10, 2026-11-25, until the series re-rates)
-    expect(html.includes('Historical:')).toBe(isHistorical(RATINGS.manifest?.simVersion));
+    // its Swiss tile only while the ratings' pool holds a recorded event of the current simulator version (see above)
+    if (RATINGS.decks.find((r) => r.name === d.deck.name)?.gamesRecord) expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
+    else expect(html).toContain('Power rank');
+    // it was never in a season: its record is historical only when its ratings or the recorded events it finished in are
+    // from an older simulator (the ratings were version 9's from SIM_VERSION 10 until the re-rating of 2026-11-25; its
+    // event finishes, events 20 to 24, are version 9's until an event is recorded on the current version)
+    const finished = TOURNAMENT_INDEX.events.filter((e) => eventFinishes(d.deck.name, [e]).length > 0);
+    expect(finished.length).toBeGreaterThan(0);
+    expect(html.includes('Historical:')).toBe(isHistorical(RATINGS.manifest?.simVersion) || finished.some((e) => isHistorical(e.simVersion)));
     expect(html).toContain('origin-badge origin-shared');
     expect(html).toContain('Player list');
     expect(html).not.toContain('choom.gg guide');
@@ -131,7 +144,11 @@ describe('deck profile: recorded results first', () => {
 
   it('gallery tiles lead with the tournament record, or say there is none', () => {
     const rated = renderToStaticMarkup(<DeckTile d={BUILTIN.find((d) => d.file === RATED)!} />);
-    expect(rated).toMatch(/\d+%<\/b> in [\d,]+ Swiss games/);
+    // the ratings' pool has Swiss games only when it holds a recorded event of the current simulator version; on the
+    // re-rating of 2026-11-25 (SIM_VERSION 13, rating runs only, the events are version 9's) no row has a Swiss record, and
+    // the tile and the deck page then show none (no "Swiss win rate")
+    if (RATINGS.decks.find((r) => r.file === RATED)?.gamesRecord) expect(rated).toMatch(/\d+%<\/b> in [\d,]+ Swiss games/);
+    else expect(rated).not.toContain('Swiss games');
     saveUnrecorded();
     const none = renderToStaticMarkup(<DeckTile d={loadCustom().find((d) => d.file === UNRECORDED)!} />);
     expect(none).toContain('No recorded games');

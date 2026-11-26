@@ -71,7 +71,8 @@ describe('the run file', () => {
     expect(sel.bot).toBe('hard');
     const after = poolEvents(sel.kept, currentListGate(LIB));
     expect(after.games.length - before).toBe(12);
-    expect(after.runs).toBe(same ? pooled.filter((e) => e.kind === 'nct-rating-run').length + 1 : 1);
+    // the runs of the current version (since 2026-11-25 the series' runs 5 to 8; runs 1 to 4 are version 9's) and this one
+    expect(after.runs).toBe(same ? pooled.filter((e) => e.kind === 'nct-rating-run' && e.simVersion === SIM_VERSION).length + 1 : 1);
     // the fit the season judges its own decks on at its end (scripts/breed-data.ts fitPooledRatings) counts them
     const fitBefore = new Map(fitPooledRatings(pooled).map((x) => [x.name, x.games]));
     const fitAfter = new Map(fitPooledRatings([...pooled, r]).map((x) => [x.name, x.games]));

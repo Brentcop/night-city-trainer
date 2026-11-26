@@ -10,7 +10,7 @@ import { EVENT, withLiveCountdown } from '../src/content/event';
 import { ordinal } from '../src/lib/playedRecord';
 import { BUILTIN } from '../src/lib/browserLibrary';
 import { deckReports } from '../src/data/deckReportsData';
-import { SEASONS } from '../src/data/index';
+import { RATINGS, SEASONS } from '../src/data/index';
 import { setArtEnabled } from '../src/ui/art';
 import { RecommendedHeroView } from '../src/ui/pages/Home';
 import { DeckTile } from '../src/ui/components/DeckIdentity';
@@ -51,7 +51,11 @@ describe('UX-8: each headline number is named for its source', () => {
     const html = renderToStaticMarkup(<DeckTile d={d} />);
     expect(html).toContain('season rating ·');
     expect(html).not.toMatch(/vs meta · \d+th pct/);
-    expect(html).toContain('Swiss win rate: the raw record');
+    // the ratings' pool has Swiss games only when it holds a recorded event of the current simulator version; on the
+    // re-rating of 2026-11-25 (SIM_VERSION 13, rating runs only, the events are version 9's) no row has a Swiss record, and
+    // the tile and the deck page then show none (no "Swiss win rate")
+    if (RATINGS.decks.find((r) => r.name === d.deck.name)?.gamesRecord) expect(html).toContain('Swiss win rate: the raw record');
+    else expect(html).not.toContain('Swiss games');
   });
   it('ordinals: 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 81st', () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 81, 112].map(ordinal)).toEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '81st', '112th']);

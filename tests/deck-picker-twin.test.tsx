@@ -31,7 +31,11 @@ describe('deck pickers resolve recorded results by list, as tiles do', () => {
     const tier = simTierShort(simTierFor(lib.deck.name));
     const own = deckOptionTail({ ...lib, tier: undefined });
     expect(own).toContain(`[Sim ${tier}]`);
-    expect(own).toMatch(/% in \d+ games/);
+    // the ratings' pool has Swiss games only when it holds a recorded event of the current simulator version; on the
+    // re-rating of 2026-11-25 (SIM_VERSION 13, rating runs only, the events are version 9's) no row has a Swiss record, and
+    // the tile and the deck page then show none (no "Swiss win rate")
+    if (RATED.get(lib.deck.name)?.gamesRecord) expect(own).toMatch(/% in \d+ games/);
+    else expect(own).not.toMatch(/% in \d+ games/);
     expect(deckOptionTail(copy)).toBe(own);
   });
   it('a saved deck with a changed list gets none', () => {

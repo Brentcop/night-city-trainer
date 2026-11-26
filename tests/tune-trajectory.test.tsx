@@ -15,6 +15,15 @@ import { CutTable, TuneTrajectory } from '../src/ui/components/LabEvidence';
 import { GenerationSummary } from '../src/ui/pages/DeckLab';
 import { allDecks, upsertCustom } from '../src/lib/browserLibrary';
 
+// The tuner ranks its candidate swaps on src/data/impact.json, which every rating run rebuilds (the re-rating on
+// SIM_VERSION 13 of 2026-11-25 moved the any-gain case below to no adoption), so the test reads the table frozen, as
+// tests/deck-lab-ledger.test.ts does: it guards the trajectory's words, not the data.
+vi.mock('../src/data/impact.json', async () => {
+  const { readFileSync } = await import('node:fs');
+  const t = JSON.parse(readFileSync(new URL('./fixtures/impact-2026-11-24-b2.json', import.meta.url), 'utf8'));
+  return { default: t, ...t };
+});
+
 function anyDeck(name: string, colors: string[]): DeckList {
   const legends = CARDS.filter((c) => c.type === 'Legend' && colors.includes(c.color)).slice(0, 3).map((c) => c.id);
   const pool = CARDS.filter((c) => c.type !== 'Legend' && colors.includes(c.color) && c.ram <= 2);

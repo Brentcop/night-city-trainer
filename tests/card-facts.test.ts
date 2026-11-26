@@ -106,10 +106,12 @@ describe('on the real reports', () => {
     expect(cardAnalysisLists(ANA!, ANA!.decks[0]!.cards[0]!.id)).toContain(ANA!.decks[0]!.id);
   });
 
-  it.skipIf(!ANA || !IMP || !DECK_IMP)('the coach’s impact table holds the breeder’s per-list gaps (Season 3 plus the analysis), and pooledImpact is its weighted mean', () => {
-    // since 2026-11-24 (REVIEW_2026-11-24 B.2) the coach's table is the breeder's pair, simulator version 9 and Hard: per list,
-    // the season round robin's sums plus the analysis' own, means to 4 decimals (impactDataOf in src/lib/breederImpact.ts)
-    const season = DECK_IMP!.entries.find((e) => e.simVersion === 9 && e.bot === 'hard')!.lists;
+  it.skipIf(!ANA || !IMP || !DECK_IMP)('the coach’s impact table holds the breeder’s per-list gaps (the season tables plus the analysis), and pooledImpact is its weighted mean', () => {
+    // since 2026-11-24 (REVIEW_2026-11-24 B.2) the coach's table is the breeder's pair (version 9 and Hard until the
+    // re-rating of 2026-11-25, version 13 and Hard since): per list, that pair's season-table sums (a season's round robin,
+    // the rating runs' card impact) plus the analysis' own, means to 4 decimals (impactDataOf in src/lib/breederImpact.ts)
+    const pair = IMP as unknown as { simVersion: number; bot: string };
+    const season = DECK_IMP!.entries.find((e) => e.simVersion === pair.simVersion && e.bot === pair.bot)!.lists;
     // a list the analysis does not hold (one edited after it was measured, or one only the season tables and the rating
     // series have played since) stands on the season's sums alone; every list holds at least one of the two
     let both = 0;

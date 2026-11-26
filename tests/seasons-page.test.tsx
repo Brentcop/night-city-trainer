@@ -319,8 +319,9 @@ describe('the page', () => {
     for (const r of rows) expect(r.now!.games, r.name).toBeGreaterThanOrEqual(20);
     expect(t).toMatch(/S3-03 Cross \(RRR\) crossover Ladder: V \/ Smasher \/ Padre \(RRG\) \+ NC-07 Braindance Burn \(RRB\) 45\.0% \d+\.\d% 90% range \d+\.\d–\d+\.\d% \d+ games/);
     expect(t).toMatch(/S3-07 Explorer \(RRG\) explorer a new Legend trio 41\.3% \d+\.\d% 90% range \d+\.\d–\d+\.\d% \d+ games none: an explorer/);
-    // Season 3 compares like with like on bot and simulator, and says so
-    expect(t).toContain('with another field but the same bot and simulator');
+    // Season 3 (Hard, version 9) says what it shares with the ratings: the bot always, the simulator only while the
+    // ratings are version 9's (until the re-rating of 2026-11-25 on version 13)
+    expect(t).toContain(RATINGS.manifest?.simVersion === 9 ? 'with another field but the same bot and simulator' : 'with another field and simulator but the same bot');
     // the two decks it kept out, with the bot that showed each worse
     expect(count(t, 'Bred, but did not enter')).toBe(1);
     expect(notEntered(s3.gate).map((d) => d.name)).toEqual(['S3-01 Mutant (RBG)', 'S3-04 Cross (RBB)']);
