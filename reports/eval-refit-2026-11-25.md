@@ -143,3 +143,16 @@ The same rule, in order, stopping at the first failure:
 3. Per-deck reports, Medium `--per 2` and Hard `--per 1`; if 7 or more decks move beyond 2 SE in either, name the families and features (B5 found `blocker` −3.7 moved 10 decks on Medium: Blocker-heavy lists are expected to move, and which ones is reported).
 
 10 threads (another agent on 4). If it passes, landing is the coordinator's decision.
+
+### hb-v12, step 1: passed
+
+(a) `npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 100001 --mid 0.25 --compare hb-v12 --threads 10`: 4,970 new fresh Hard games (525 s; fitted in 408 s), rows mid 55,001 / 18,292, next and ender 45,558 / 15,232 each; 1,246 held-out games.
+
+| held-out log-loss, beside the deck controls | all | mid | next | ender |
+|---|---|---|---|---|
+| current weights (v12) | 0.5030 | 0.5246 | 0.4840 | 0.4961 |
+| hb-v12 (recorded value) | 0.4983 | 0.5199 | 0.4800 | 0.4906 |
+
+Paired over held-out games: **−0.0047 [−0.0076, −0.0020]**, wholly below 0: step 1 (a) passes. Unlike refit-v12b, the gain holds on every row kind, Hard's two cuts included. Without the controls: 0.5526 against 0.5462. This run's own refit again puts hand at 35.4 ± 6.6 and blocker at −14.8 ± 16 (and plan at −2.79 ± 1.2).
+
+(b) No sign flip: hand and blocker keep their signs, nothing else changes.
