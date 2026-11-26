@@ -67,9 +67,12 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   // Re-pinned 2026-11-26 for SIM_VERSION 12 (no matchup profiles for Medium and Hard, C.6): every Medium and Hard game
   // moved, winners unchanged; Medium game 1 ends on turn 14 (was 12), Hard game 1 on turn 13 (was 11); Easy does not
   // read the weights or the profiles. Version 11: medium 12/9086b301, f6e5d8c9; hard 11/2a54b632, 722ce4ff.
+  // Re-pinned 2026-11-26 for SIM_VERSION 13 (the cards both players know are in the rival's hand kept in every
+  // re-deal, C.7): Hard game 2's log moved, winner and length unchanged; the Easy and Medium games and Hard game 1 did
+  // not move. Version 12: hard a60f7e15.
   hard: [
     { seed: 301, first: 0, winner: 0, turns: 13, log: 'ffdc9b8a' },
-    { seed: 302, first: 1, winner: 1, turns: 11, log: 'a60f7e15' },
+    { seed: 302, first: 1, winner: 1, turns: 11, log: 'fddc2c4f' },
   ],
 };
 

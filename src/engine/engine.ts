@@ -610,7 +610,7 @@ export class Game {
    * Move a card to a zone of its owner (or controller for field). Handles Legend invalid zones and gear.
    * position: 'top' | 'bottom' for deck.
    */
-  move(uid: number, to: Zone, opts: { position?: 'top' | 'bottom'; controller?: PlayerId; faceUp?: boolean } = {}) {
+  move(uid: number, to: Zone, opts: zoneRules.MoveOptions = {}) {
     return zoneRules.move(this, uid, to, opts);
   }
 

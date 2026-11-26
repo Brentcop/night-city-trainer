@@ -1796,19 +1796,33 @@ async function pickReaction(g: Game, rx: Reaction[], endIdx: number, baseV: numb
  * both decks are shuffled, the rival's hand is re-dealt from the rival's unseen cards (hand + deck), and the identities
  * of face-down Legends are permuted among the slots the viewer can't tell apart (own face-down Legends not looked at,
  * every rival face-down Legend). The viewer's own hand and every public zone are untouched.
+ *
+ * Since SIM_VERSION 13 (REVIEW_2026-11-25 C5) the cards both players know are in the rival's hand (`PlayerState.shown`:
+ * revealed into it, or taken into it from a public zone) stay where they are, and only the other cards are re-dealt,
+ * into the same places in the hand. With none known every random number is drawn as before, so the deal is the same.
  */
 export function hideInfo(g: Game, viewer: PlayerId) {
   // deck order is unknown to everyone
   for (const pl of [0, 1] as PlayerId[]) shuffleInPlace(g.s, g.P(pl).deck);
-  // the rival's hand is unknown: re-deal it from the rival's unseen cards (hand + deck)
+  // the rival's hand is unknown, but for the cards both know: re-deal the rest from the rival's unseen cards (hand + deck)
   const r = other(viewer);
   const R = g.P(r);
-  const n = R.hand.length;
-  for (const u of R.hand) g.c(u).zone = 'deck';
-  R.deck.push(...R.hand);
+  const shown = R.shown ?? null;
+  const kept = shown ? R.hand.filter((u) => shown.includes(u)) : [];
+  const hand = R.hand;
+  const unseen = kept.length ? hand.filter((u) => !kept.includes(u)) : hand;
+  const n = unseen.length;
+  for (const u of unseen) g.c(u).zone = 'deck';
+  R.deck.push(...unseen);
   R.hand = [];
   shuffleInPlace(g.s, R.deck);
   for (let i = 0; i < n; i++) g.drawRaw(r);
+  if (kept.length) {
+    // the known cards keep their places; the re-dealt ones fill the others in the order they were drawn
+    const dealt = R.hand;
+    let k = 0;
+    R.hand = hand.map((u) => (kept.includes(u) ? u : dealt[k++]));
+  }
   // face-down Legends: the viewer knows which Legends are in each pool, not which slot holds which
   const permute = (uids: number[]) => {
     if (uids.length < 2) return;
