@@ -117,3 +117,18 @@ Information (the fit's held-out games, paired with controls, not a rule step): t
 ### The one variant, declared before any fresh game: `refit-v12b`
 
 Decided by the coordinator on 2026-11-25, before any fresh game was played, and the only variant: `refit-v12b` is the fitted candidate with `plan` kept at 0.915 by argument, as `goSolo` and `rivalLethal` are. The reason: `plan` correlates 0.72 / 0.67 with the gig / gigNear features, so its fitted value is a trade between overlapping terms, and its job is to steer Gig choices toward the list's payoffs, which a negative value would invert (against SIM_VERSION 10's Street Cred parity fix). The fitted held-out comparison of this variant (−0.0045 [−0.0096, +0.0005]) is information only. `plan` is now in `FIXED_TERMS` with that reason. The rule then runs unchanged from step 1 (a), on fresh games (seed 90001, `--compare refit-v12b`), stopping at the first failure; 10 threads.
+
+### Rule 1 (a) on fresh games: failed, so the refit is not adopted this round
+
+`npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 90001 --mid 0.25 --compare refit-v12b --threads 10`: 4,970 fresh Hard games (554 s; fitted in 746 s), rows mid 54,504 / 18,407, next and ender 45,482 / 15,257 each; held-out games 1,242.
+
+| held-out log-loss, beside the deck controls | all | mid | next | ender |
+|---|---|---|---|---|
+| current weights (v12) | 0.5163 | 0.5438 | 0.4921 | 0.5074 |
+| refit-v12b (recorded value) | 0.5115 | 0.5284 | 0.4937 | 0.5089 |
+
+Paired over held-out games: **−0.0048 [−0.0098, +0.0002]**. The interval is not wholly below 0, so step 1 (a) fails and nothing further was played (no botcheck, no per-deck report). Without the controls: 0.5460 against 0.5377. The gain is all on the main-phase rows; at Hard's two cuts (next, ender) refit-v12b predicts slightly worse than the current weights, and those are the positions that score about 83% of Hard's rollouts.
+
+The fresh games' own refit (information, not a rule step) agrees with the first on the direction of every large move and replicates the `plan` flip (−1.77 ± 1.2): hand 30.7 ± 6.8 (35.2), blocker −23.3 ± 17 (−16.7), eddie 3.95 ± 15 (10.4), unitBase 29.6 ± 20 (23.7), goSolo −159 (−145). Several terms differ between the two fits by more than their by-game intervals allow (gigNear 86.7 against 67.9, unitPower 19.0 against 13.5, stealsTwo 58.1 against 34.0, exposed 0.461 against 0.372, threat 1.39 against 1.15), so the cluster-robust intervals still understate how much a fit of this size moves (collinear Gig and Unit columns): read single terms as directions, not values. readyTrick was 2.65 ± 11 in the first fit and is not identified in the second (8.59 ± 13).
+
+What it suggests for the next attempt: `hand` is worth far more than 4.54 (30 to 35 in both fits, 21.9 in the 11-18 refit); `blocker` is about −20, not −44 (with deck controls, as in 11-12's −18.9); `eddie` is lower once ready sources have their own term; a fit that wants to help Hard should weight the `next` / `ender` rows, where this one gained nothing; and a refit that only moves `hand` and `blocker` is a smaller change to measure. `refit-v12b` stays in `src/ai/weightSets.ts` as a named set for comparisons; the default is unchanged.
