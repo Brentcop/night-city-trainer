@@ -132,3 +132,14 @@ Paired over held-out games: **−0.0048 [−0.0098, +0.0002]**. The interval is 
 The fresh games' own refit (information, not a rule step) agrees with the first on the direction of every large move and replicates the `plan` flip (−1.77 ± 1.2): hand 30.7 ± 6.8 (35.2), blocker −23.3 ± 17 (−16.7), eddie 3.95 ± 15 (10.4), unitBase 29.6 ± 20 (23.7), goSolo −159 (−145). Several terms differ between the two fits by more than their by-game intervals allow (gigNear 86.7 against 67.9, unitPower 19.0 against 13.5, stealsTwo 58.1 against 34.0, exposed 0.461 against 0.372, threat 1.39 against 1.15), so the cluster-robust intervals still understate how much a fit of this size moves (collinear Gig and Unit columns): read single terms as directions, not values. readyTrick was 2.65 ± 11 in the first fit and is not identified in the second (8.59 ± 13).
 
 What it suggests for the next attempt: `hand` is worth far more than 4.54 (30 to 35 in both fits, 21.9 in the 11-18 refit); `blocker` is about −20, not −44 (with deck controls, as in 11-12's −18.9); `eddie` is lower once ready sources have their own term; a fit that wants to help Hard should weight the `next` / `ender` rows, where this one gained nothing; and a refit that only moves `hand` and `blocker` is a smaller change to measure. `refit-v12b` stays in `src/ai/weightSets.ts` as a named set for comparisons; the default is unchanged.
+
+## The next candidate, declared before any of its games: `hb-v12`
+
+Decided by the coordinator on 2026-11-25, written here before any game of it: `hb-v12` is SIM_VERSION 12's `DEFAULT_WEIGHTS` with only `hand` 30 (from 4.54) and `blocker` −20 (from −44.1); every other weight unchanged, both switches off (`spentRiskMainOnly` 0, `subChoiceEval` 0). Reasons: these are the two terms both refits agree on (hand 35.2 ± 6.2 and 30.7 ± 6.8; blocker −16.7 ± 15 and −23.3 ± 17, seeds 80001 and 90001), the values are rounded toward the current weights, and a two-term change is smaller to measure and to explain than a whole refit (the other terms moved between the two fits by more than their intervals).
+
+The same rule, in order, stopping at the first failure:
+1. (a) held-out log-loss on **new** fresh Hard games (seed 100001: not 80001 or 90001, which suggested the values), `--compare hb-v12`, the value beside the deck controls, paired bootstrap interval wholly below 0; (b) no sign flip (none by construction).
+2. Duplicate botcheck over the library, Hard `--per 1` and Medium `--per 4`, lower bounds at least 49.0%.
+3. Per-deck reports, Medium `--per 2` and Hard `--per 1`; if 7 or more decks move beyond 2 SE in either, name the families and features (B5 found `blocker` −3.7 moved 10 decks on Medium: Blocker-heavy lists are expected to move, and which ones is reported).
+
+10 threads (another agent on 4). If it passes, landing is the coordinator's decision.

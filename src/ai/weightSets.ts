@@ -124,12 +124,21 @@ export const REFIT_V12B: Partial<EvalWeights> = {
   readyTrick: 2.65,
 };
 
+/**
+ * hb-v12 (REVIEW_2026-11-24 C.3, the coordinator's candidate of 2026-11-25, declared before any of its games;
+ * reports/eval-refit-2026-11-25.md): SIM_VERSION 12's DEFAULT_WEIGHTS with only the two terms both refits agree on
+ * (hand 35.2 / 30.7, blocker −16.7 / −23.3 on seeds 80001 and 90001), rounded toward the current weights; every other
+ * weight and both switches as the default. Not the default.
+ */
+export const HB_V12: Partial<EvalWeights> = { hand: 30, blocker: -20 };
+
 export const WEIGHT_SETS: Record<string, Partial<EvalWeights>> = {
   'hand-2026-10': HAND_2026_10,
   'next-turn': NEXT_TURN_SET,
   'calibrated-2026-11': CALIBRATED_2026_11,
   'calibrated-decks-2026-11': CALIBRATED_DECKS_2026_11,
   'refit-v12b': REFIT_V12B,
+  'hb-v12': HB_V12,
 };
 
 /** DEFAULT_WEIGHTS-relative overrides of a named set; throws on an unknown name. */
