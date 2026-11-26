@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { costLine, costNote, costSentence, costTag, costWords, RATING_COST, RATING_COST_SOURCE, shownCost, type CostBand, type CostInstrument } from '../src/lib/ratingCost';
 import { COACH_COST_NOTE, coachCostWords, GIG_NOTE } from '../src/lib/coachWords';
-import { RATING_INFO, type ReviewMove } from '../src/lib/gameReview';
+import { BLUNDER_GIGS, MISTAKE_GIGS, RATING_INFO, type ReviewMove } from '../src/lib/gameReview';
 import { ACCURACY_TEXT, costTagOf, explain, REVIEW_GIG_NOTE, saidText } from '../src/lib/reviewWords';
 import { verdictText } from '../src/ui/components/board/CoachPanel';
 import type { MoveGrade } from '../src/ai/coach';
@@ -14,10 +14,12 @@ const BANDS: CostBand[] = ['slip', 'mistake', 'blunder'];
 
 describe('rating cost figures', () => {
   const report = fs.readFileSync(RATING_COST_SOURCE.report, 'utf8');
-  const section = report.slice(report.indexOf('## Row 6'));
+  // the current bands' figures (Mistake from 1 Gig, Blunder from 3 since 2026-11-25), not Row 6's under the old lines
+  const section = report.slice(report.indexOf(RATING_COST_SOURCE.section));
 
-  it('are the report’s Row 6 table, figure for figure', () => {
-    expect(section.length).toBeGreaterThan(100);
+  it('are the report’s table for the current bands, figure for figure, measured on the current lines', () => {
+    expect(report.indexOf(RATING_COST_SOURCE.section)).toBeGreaterThan(0);
+    expect(RATING_COST_SOURCE.lines).toEqual({ mistake: MISTAKE_GIGS, blunder: BLUNDER_GIGS });
     for (const inst of INSTS)
       for (const band of BANDS) {
         const c = RATING_COST[inst][band];
@@ -68,8 +70,9 @@ describe('ratings worded in win chance, not Gigs', () => {
   it("the coach's toast says what the band costs, never the gap", () => {
     for (const [v, gap, band] of [
       ['inaccuracy', 0.3, 'slip'],
-      ['mistake', 0.6, 'mistake'],
-      ['mistake', 1.4, 'blunder'],
+      ['mistake', 0.6, 'slip'],
+      ['mistake', 1.4, 'mistake'],
+      ['mistake', 3.4, 'blunder'],
     ] as const) {
       const t = verdictText(grade(v, gap, 0.1, 16));
       expect(t).not.toMatch(/Gig/);

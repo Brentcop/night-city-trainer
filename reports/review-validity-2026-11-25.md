@@ -214,3 +214,159 @@ player in the band.) By game stage, Mistakes and Blunders together:
   the review rates Blunder cost about 10% win chance on average when the Hard bot played on from them to the end
   (measured 2026-11-25)."; the legend, the turning point, the scorecard's and Play-out details' notes the same. Before,
   each said the gap in Gigs ("about 0.9 Gigs better", "−0.6 ± 0.1 Gigs").
+
+## Raising the Mistake line (2026-11-25, the owner's decision "Raise it")
+
+Row 6 found that only Blunders show a measurable cost when the Hard bot plays on to the end; the owner decided that the
+Mistake line rises so that a Mistake marks a measurable cost. The lines are chosen from the row-6 data (the same 240
+games, coach grades and Hard-to-the-end gains), binned by rated gap, under the rule below.
+
+### The rule, written before the costs were binned
+
+**Data.** The row-6 population: every confirmed Slip, Mistake and Blunder of a main-phase action or reaction with a named
+better move, of both seats, by the Game review (its rated gap before the cap) and by the coach (its confirmed gap), with
+the gain measured by the `costs` step (the recommended move's win rate minus the move made's, both played to the end with
+Hard on both seats, 16 or 24 paired worlds).
+
+**Bins.** Gaps on the grid 0.375, 0.5, 0.75, 1, 1.25, 1.5, 2, 3 Gigs (bins [0.375, 0.5), [0.5, 0.75), …, [3, ∞), and
+below 0.375). A bin's or a range's figure is the row-6 estimate made finer: the mean gain over every rating in it,
+stratified by cell (bin, old band, player type: the cells the sampling and any top-up were random within), each cell
+weighted by its share of the ratings, with the stratified SE (finite-population corrected) and a 90% interval (±1.645 SE).
+A cell with no measured rating takes the range's pooled mean and one rating's variance (counted and reported).
+
+**Top-up.** Any bin from 0.375 to 2 Gigs with fewer than 25 measured ratings, for either instrument, gets up to 40 more
+ratings measured (random within its cells; a position shared by both instruments is measured once), by the same method
+(`costs`: 16 paired worlds, Hard on both seats, the deciding seat's hidden cards re-dealt), within about 45 minutes on 3
+threads.
+
+**The Mistake line M.** For each instrument, the smallest g in {0.375, 0.5, 0.75, 1, 1.25, 1.5} such that (i) all its
+costly ratings with a gap of g or more have a mean gain whose 90% interval lies above 0, and (ii) the bin just above g,
+[g, next grid point), does too. One line for both (one definition in `gameReview.ts`, the coach imports it): the larger of
+the two instruments' g, so that a Mistake marks a measurable cost by either. If no g qualifies, M is the smallest g where
+(i) holds, said as a weaker basis.
+
+**The Blunder line B.** The smallest grid point b above M (up to 3) such that the ratings with a gap of b or more cost at
+least twice the Mistake band's [M, b) mean, with the difference's 90% interval above 0; failing that, the smallest b
+whose ratings of b or more cost at least 15 points on average with a 90% interval whose lower end is above the Mistake
+band's mean; failing both, B = the grid point nearest 2 × M. The larger of the two instruments' b.
+
+**Game-losing ratings** (the review's: the move made loses the game in at least 1 in 4 more play-outs). Today a Mistake
+that is game-losing is a Blunder. Kept from the new M if the review's game-losing ratings with a gap in [M, B) cost at
+least the Blunder band's lower 90% end (point estimate); else dropped. Game-losing ratings under M: if their 90% interval
+lies above 0 they are Mistakes (a game-losing Slip is a Mistake); else they stay Slips.
+
+**Slips.** Outside the noise and under M: a Slip, shown by the coach and the review with its band's measured cost
+(re-derived below; "often costs nothing measurable" if its interval includes 0). The review's accuracy counts it as before
+(accuracy is in Gigs and is not changed by the labels). The coach's scorecard keeps its letter (handled well = the
+coach's pick, as good, or a close call, among the decisions that mattered: unchanged), but its count of costly moves is
+Mistakes and Blunders only, with the Slips counted apart; as the meaning of `costly` changes, the stored summary becomes
+`v: 3`, and v2 entries are kept as older ones.
+
+**What is checked, decided by cost before the data.** The coach's confirmation on 16 fresh worlds and the review's stay
+on Slip or worse and on close calls of 0.375 Gigs or more, and the Hard check keeps counting a seat's confirmed ratings of
+0.375 Gigs or more outside the noise (a constant of its own, the check line): the confirmation costs 0.1 to 0.2 s a move
+and keeps the 10–20% false Slips of six worlds out of what is shown; the Hard check was measured (R2) with that count;
+and with the checks unchanged nothing is measured differently (REVIEW_MEASURE stays), so every stored review is rated
+again from its kept measurements.
+
+**Figures shown.** `ratingCost.ts` re-derived for the new bands from the same data and estimator (cells as above), the
+words by the row-6 rule. **Guard:** the new lines are kept only if the review's and the coach's Mistake-or-worse per
+counted decision still separate Easy from Hard on these games (the paired per-deal difference, Easy − Hard, with a 90%
+bootstrap interval above 0); before and after are reported with the scorecard by tier.
+
+### Results
+
+**Top-up** (scratch scripts `bins.mts` / `topup.mts` around the `flag` job of `scripts/review-validity-worker.ts`, 16
+worlds, seeds 9,000,000 + 101 k, 3 threads, 1,675 s on a shared machine): seven bins had fewer than 25 measured ratings
+(coach 0.375–0.5, 1–1.25, 1.25–1.5, 1.5–2; review 0.375–0.5, 1–1.25, 1.5–2); 232 more ratings were drawn (up to 40 a
+bin, fewer where the bin had fewer), 173 positions newly measured, 39 of them could not be played both ways (a Call of a
+face-down Legend, as in row 6). Only the row-6 sample (replayed exactly) and the top-up count: a position measured for
+another reason (the other instrument's sample, the `flags` step) is used only when its rating is in one of them.
+
+Gain of the recommended move over the move made, played to the end with Hard on both seats (points of win chance),
+stratified as written:
+
+| Rated by | gap (Gigs) | ratings | measured | gain | 90% interval | gap ≥ lower edge: gain | 90% interval |
+|---|---|---|---|---|---|---|---|
+| coach | under 0.375 | 57 | 38 | 1.4 ± 1.2 | [−0.5, 3.3] | | |
+| coach | 0.375–0.5 | 46 | 30 | 5.6 ± 1.5 | [3.1, 8.1] | 6.9 ± 1.2 | [5.0, 8.9] |
+| coach | 0.5–0.75 | 102 | 42 | 1.9 ± 3.0 | [−3.0, 6.9] | 7.0 ± 1.2 | [5.0, 9.0] |
+| coach | 0.75–1 | 138 | 59 | 0.5 ± 1.6 | [−2.1, 3.1] | 7.4 ± 1.3 | [5.2, 9.5] |
+| coach | 1–1.25 | 130 | 49 | 5.2 ± 1.3 | [3.0, 7.4] | 8.2 ± 1.4 | [5.8, 10.6] |
+| coach | 1.25–1.5 | 127 | 49 | 4.3 ± 1.5 | [1.9, 6.7] | 8.6 ± 1.6 | [5.9, 11.2] |
+| coach | 1.5–2 | 199 | 50 | 6.8 ± 1.9 | [3.7, 9.9] | 9.2 ± 1.8 | [6.1, 12.2] |
+| coach | 2–3 | 270 | 35 | 1.5 ± 3.1 | [−3.7, 6.6] | 9.8 ± 2.3 | [6.1, 13.6] |
+| coach | 3 and over | 437 | 57 | 15.0 ± 3.2 | [9.8, 20.2] | 15.0 ± 3.2 | [9.8, 20.2] |
+| review | under 0.375 | 54 | 34 | 0.2 ± 1.3 | [−1.9, 2.4] | | |
+| review | 0.375–0.5 | 35 | 27 | −0.5 ± 1.5 | [−2.9, 2.0] | 7.8 ± 1.2 | [5.8, 9.9] |
+| review | 0.5–0.75 | 72 | 35 | 4.7 ± 3.7 | [−1.4, 10.8] | 8.1 ± 1.3 | [5.9, 10.2] |
+| review | 0.75–1 | 90 | 45 | −0.6 ± 2.2 | [−4.2, 3.1] | 8.3 ± 1.3 | [6.1, 10.5] |
+| review | 1–1.25 | 122 | 43 | 7.1 ± 1.7 | [4.3, 10.0] | 9.1 ± 1.5 | [6.7, 11.5] |
+| review | 1.25–1.5 | 101 | 25 | 10.3 ± 4.1 | [3.7, 17.0] | 9.4 ± 1.6 | [6.7, 12.1] |
+| review | 1.5–2 | 155 | 53 | 3.1 ± 1.2 | [1.1, 5.1] | 9.2 ± 1.8 | [6.3, 12.2] |
+| review | 2–3 | 236 | 30 | 9.1 ± 3.3 | [3.6, 14.5] | 10.8 ± 2.2 | [7.2, 14.5] |
+| review | 3 and over | 363 | 58 | 12.0 ± 3.0 | [7.1, 16.9] | 12.0 ± 3.0 | [7.1, 16.9] |
+
+(Two review ratings in 0.375–0.5 sat in cells with no measurement and took the range's pooled mean, as written.)
+
+**The Mistake line: 1 Gig.** (i) holds from every grid point for both instruments (all costly ratings together cost 7 to
+9 points). (ii): the coach's first qualifying point is 0.375 (its 0.375–0.5 bin, 5.6 [3.1, 8.1]), but its 0.5–0.75 and
+0.75–1 bins include 0; the review's 0.375, 0.5 and 0.75 bins all include 0 and its first qualifying point is 1 (1–1.25:
+7.1 [4.3, 10.0]). The larger of the two: **M = 1**. From 1 Gig up every bin of both instruments is above 0 but the
+coach's 2–3 (1.5 [−3.7, 6.6], 35 measured); the rule reads only the bin just above g.
+
+**The Blunder line: 3 Gigs.** Coach: 1.25, 1.5 and 2 fail criterion 1 (the ratings above cost 8.6 to 9.8 against 4.7 to
+5.6 below, not twice); at 3, 15.0 ± 3.2 against 4.1 ± 1.3 for [1, 3), the difference 10.9 [5.3, 16.6]: **b = 3**. Review:
+no grid point passes criterion 1 (at 2, 10.8 against 6.3, difference 4.5 [0.3, 8.8], not twice; at 3, 12.0 against 7.4)
+nor criterion 2 (no range reaches 15 points), so the fallback, the grid point nearest 2 × M: b = 2. The larger: **B = 3**,
+which is the review's cap (CAP_GIGS): a Blunder is now a clear gap at or past the cap.
+
+**Game-losing ratings.** None of the review's game-losing ratings had a gap under 3 Gigs in these games (55 moves carry
+the flag, 51 of them Blunders, all past the cap), so nothing could show the clause earns its place: by the rule it is
+dropped (it changes no rating here); the move's words still say it lost the game in more play-outs.
+
+**The new bands** (the same estimate over each new band's ratings; Slip = clearly behind under 1 Gig, Mistake = 1 to 3,
+Blunder = 3 and over):
+
+| Rated by | Band | ratings in the games | measured | mean rated gap (Gigs) | gain with Hard to the end (points) | 90% interval | by player: measured/all mean | shown as |
+|---|---|---|---|---|---|---|---|---|
+| coach | slip | 343 | 169 | 0.65 | 1.8 ± 1.1 | [-0.1, 3.6] | easy 58/113 5.7, medium 78/176 1.4, hard 33/54 -2.0 | often costs nothing measurable |
+| coach | mistake | 726 | 183 | 1.84 | 4.1 ± 1.3 | [1.9, 6.3] | easy 65/244 7.4, medium 81/419 3.4, hard 37/63 6.9 | about 4 points |
+| coach | blunder | 437 | 57 | 7.41 | 15.0 ± 3.2 | [9.8, 20.2] | easy 17/162 18.7, medium 25/243 13.0, hard 15/32 11.2 | about 15 points |
+| review | slip | 251 | 141 | 0.61 | 1.1 ± 1.4 | [-1.1, 3.4] | easy 59/100 1.8, medium 67/132 0.1, hard 15/19 8.8 | often costs nothing measurable |
+| review | mistake | 614 | 151 | 1.84 | 7.4 ± 1.5 | [4.9, 9.9] | easy 51/233 7.9, medium 66/338 5.7, hard 34/43 5.6 | about 7 points |
+| review | blunder | 363 | 58 | 7.16 | 12.0 ± 3.0 | [7.1, 16.9] | easy 21/144 16.9, medium 28/210 8.3, hard 9/9 19.9 | about 12 points |
+
+So a Mistake now marks a measurable cost for both instruments (about 4 and 7 points), a Blunder a larger one (about 15
+and 12), and a Slip, now everything clearly behind under 1 Gig, still costs nothing measurable (its interval includes 0).
+The Blunder band is small in measurements (57 and 58) and its intervals are wide (±5 points).
+
+**Skill, before and after** (`separate.mts`: the reviews of the 240 games re-rated by `rerateRecord` under REVIEW_RULES 5, none
+refused, none re-measured; the coach grades of the `coach` step relabelled by gap, the confirmation set unchanged).
+Review, per counted move:
+
+| Player | counted moves | Mistake or worse, before → after | Slip, before → after | accuracy |
+|---|---|---|---|---|
+| Easy | 1,936 | 23.3% → 19.4% | 1.3% → 5.3% | 65.5 (unchanged) |
+| Medium (seat 1) | 4,205 | 15.7% → 13.1% | 0.6% → 3.2% | 75.9 (unchanged) |
+| Hard | 2,216 | 3.0% → 2.4% | 0.3% → 0.9% | 95.3 (unchanged) |
+
+Easy − Hard paired by deal: 20.2 points [90% 18.1, 22.2] before, 17.1 [15.2, 19.1] after (Easy/Hard ratio 7.8 → 8.1).
+Ratings changed: 617 Blunders became Mistakes, 199 Mistakes became Slips; nothing else.
+
+Coach, per decision that mattered, and the scorecard per game:
+
+| Player | decisions | Mistake or worse, before → after | Slip, before → after | handled well (unchanged) | costly moves a game: v2 (Slip or worse) → v3 (Mistake or worse) | Slips a game (v3) | letters (A/B/C/D) |
+|---|---|---|---|---|---|---|---|
+| Easy | 1,437 | 34.6% → 28.3% | 1.5% → 7.9% | 63.1% | 4.3 → 3.4 | 0.9 | 13/40/46/21 |
+| Medium (seat 1) | 3,155 | 25.5% → 21.0% | 1.0% → 5.6% | 73.5% | 3.5 → 2.8 | 0.7 | 76/68/77/19 |
+| Hard | 1,640 | 8.9% → 5.8% | 0.2% → 3.3% | 91.3% | 1.2 → 0.8 | 0.5 | 94/20/6/0 |
+
+Easy − Hard paired by deal: 26.9 points [24.3, 29.4] before, 23.6 [21.1, 26.2] after (ratio 3.9 → 4.9); the scorecard's
+costly moves a game, Easy − Hard: 3.08 [2.69, 3.48] (v2) and 2.59 [2.24, 2.94] (v3). **The guard holds**: both
+instruments still separate Easy from Hard with intervals far above 0, and by ratio a little better than before. The
+letter and the share handled well do not move (a Slip is not handled well in either version).
+
+**Applied** (REVIEW_RULES 5): `MISTAKE_GIGS` 1, `BLUNDER_GIGS` 3 in `src/lib/gameReview.ts` (the coach imports them),
+`CHECK_GIGS` 0.375 for what is confirmed and Hard-checked, the game-losing clause dropped, the scorecard `v: 3` (costly =
+Mistakes and Blunders, Slips apart), the figures above in `src/lib/ratingCost.ts`.

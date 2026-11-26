@@ -10,7 +10,7 @@ export type { ReviewRequest };
 
 /**
  * The match reviewer's view (a tournament game, the Game review's Play-out details tab) confirms flagged moves on fresh
- * worlds, and checks a seat's rare Mistakes and Blunders with Hard play-outs, exactly as the Game review does (since
+ * worlds, and checks a seat's rare costly ratings (CHECK_GIGS or more behind) with Hard play-outs, exactly as the Game review does (since
  * 2026-11-25), so the two tabs do not contradict each other on a move both rate: the confirmation adds about a tenth to
  * the play-outs, the Hard check about half the review's time (docs/BOT_TOOLKIT.md §8).
  */

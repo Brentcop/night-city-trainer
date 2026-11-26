@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom';
 import {
   BLUNDER_GIGS,
   CAP_GIGS,
+  CHECK_GIGS,
   CLOSE_GIGS,
   GIG,
   isKeyMoment,
@@ -390,10 +391,11 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
           How the ratings are set: each option is played out in {rec.rollouts} shared worlds and scored in Gigs, the bots' own unit of value (one Gig = {GIG} points of their
           evaluation), not Gigs on the board. A close call is under {CLOSE_GIGS} Gigs from the best move found or within 2 standard errors (a gap about the same in every
           play-out comes from fixed terms of the evaluation, not the play-outs, and counts only from 0.5 Gigs); a Slip is clearly behind by less than {MISTAKE_GIGS} Gigs, a
-          Mistake by {MISTAKE_GIGS} or more, a Blunder by {BLUNDER_GIGS} or more. A Gig is not win chance, and a bigger gap is not reliably a costlier move, so the ratings
+          Mistake by {MISTAKE_GIGS} or more, a Blunder by {BLUNDER_GIGS} or more. These lines were set
+          where, played on to the end, a move starts to cost win chance measurably: below {MISTAKE_GIGS} Gigs it did not on average. A Gig is not win chance, and a bigger gap is not reliably a costlier move, so the ratings
           above say what each band cost on average when the Hard bot played on from such moves to the end ({costLine('review')}), not their gap. Accuracy = 100 ×
           e^(−average Gigs lost per counted move), where moves inside the noise lose 0 and a loss counts at most {CAP_GIGS} Gigs. A Slip or worse is played out again on
-          fresh worlds before it is shown, and a side's one or two Mistakes and Blunders again with the Hard bot playing on. Your moves and the rival's are rated the same
+          fresh worlds before it is shown, and a side's one or two moves {CHECK_GIGS} Gigs or more behind again with the Hard bot playing on. Your moves and the rival's are rated the same
           way, by these play-outs; where the coach graded one of your moves during play, its grade is shown beside the review's for reference (the coach measured fewer
           play-outs, so the two can differ). The turning point is the losing side's costliest move.
         </p>

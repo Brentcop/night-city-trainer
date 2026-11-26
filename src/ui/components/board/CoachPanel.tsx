@@ -11,6 +11,7 @@ import type { Advice, MoveGrade } from '../../../ai/coach';
 import { Markdown } from '../Markdown';
 import { MentionText } from '../CardMention';
 import { coachSummary } from '../../../lib/practiceLog';
+import { costTag } from '../../../lib/ratingCost';
 import { BEST_GIGS, fixedTerms, RATING_INFO } from '../../../lib/gameReview';
 import { COACH_COST_NOTE, coachCostWords, GIG_NOTE, isWideClose, shownLabel, verdictRating } from '../../../lib/coachWords';
 
@@ -110,7 +111,13 @@ export function MoveToast({ gr }: { gr: MoveGrade }) {
 }
 
 const isFine = (g: MoveGrade) => g.verdict === 'agree' || g.verdict === 'best' || g.verdict === 'close';
-const isCostly = (g: MoveGrade) => g.verdict === 'inaccuracy' || g.verdict === 'mistake';
+/** Behind the coach's pick outside the noise: a Slip, Mistake or Blunder (not handled well). */
+const isBehind = (g: MoveGrade) => g.verdict === 'inaccuracy' || g.verdict === 'mistake';
+/** A costly move: a Mistake or Blunder by the current lines (a Slip costs nothing measurable on average: ratingCost.ts). */
+const isCostly = (g: MoveGrade) => {
+  const r = verdictRating(g.verdict, g.gap);
+  return r === 'mistake' || r === 'blunder';
+};
 
 /** "1 Mistake, 2 Slips": the costly moves by rating name, worst first. */
 function costlyNames(costly: readonly MoveGrade[]): string {
@@ -124,16 +131,18 @@ function costlyNames(costly: readonly MoveGrade[]): string {
 }
 
 /**
- * End-of-game check against the coach (REVIEW_2026-11-25 C3): first the costly moves (Slip or worse, every one checked on
- * fresh play-outs before it was shown), then the share of the decisions that mattered handled well (the coach's pick, as
- * good, or a close call), with its letter (practiceLog.ts SCORECARD_CUTS: set from bot players of known strength). A
+ * End-of-game check against the coach (REVIEW_2026-11-25 C3): first the costly moves (Mistakes and Blunders, every one
+ * checked on fresh play-outs before it was shown; since 2026-11-25 a Mistake marks a measurable cost) and the Slips apart
+ * (behind the coach's pick in its play-outs, but by less than a Mistake: such moves cost nothing measurable on average),
+ * then the share of the decisions that mattered handled well (the coach's pick, as good, or a close call; a Slip is not),
+ * with its letter (practiceLog.ts SCORECARD_CUTS: set from bot players of known strength). A
  * decision where every option came out about the same (No clear difference) is left out, as the Game review leaves it
  * out: a uniformly random player used to score 73–75% "fine" mostly on such decisions. It is not the game's rating: the
  * Game review rates every move. Choices the coach decides by rule (targets, Gig picks, the mulligan) are not measured.
  */
 export function Scorecard({ grades }: { grades: MoveGrade[] }) {
   if (!grades.length) return null;
-  const measured = grades.filter((x) => isFine(x) || isCostly(x));
+  const measured = grades.filter((x) => isFine(x) || isBehind(x));
   const unclear = grades.filter((x) => x.verdict === 'unclear').length;
   const other = grades.length - measured.length - unclear;
   const footer = (
@@ -163,7 +172,8 @@ export function Scorecard({ grades }: { grades: MoveGrade[] }) {
   const { fine, pct, grade } = coachSummary(grades)!;
   const close = grades.filter((x) => x.verdict === 'close').length;
   const costlyAll = measured.filter(isCostly);
-  const costly = [...costlyAll].sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0)).slice(0, 3);
+  const slips = measured.filter((x) => isBehind(x) && !isCostly(x));
+  const costly = measured.filter(isBehind).sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0)).slice(0, 3);
   return (
     <div className="scorecard">
       <div className={`scorecard-grade g-${grade}`} aria-label={`Grade ${grade} against the coach's pick`} title="The share of decisions that mattered handled well, against bot players: A about as well as Hard, B Medium, C Easy, D a random player">
@@ -171,6 +181,11 @@ export function Scorecard({ grades }: { grades: MoveGrade[] }) {
       </div>
       <div>
         <b>{costlyAll.length ? `Costly moves: ${costlyAll.length} (${costlyNames(costlyAll)}), each checked on fresh play-outs` : 'No costly moves against the coach’s pick'}</b>
+        {slips.length > 0 && (
+          <div className="small">
+            {slips.length === 1 ? '1 Slip' : `${slips.length} Slips`}: behind the coach’s pick in its play-outs by less than a Mistake ({costTag('coach', 'slip')}); not counted as handled well.
+          </div>
+        )}
         <div>
           Handled well: {fine} of {measured.length} {measured.length === 1 ? 'decision' : 'decisions'} that mattered ({pct}%)
         </div>

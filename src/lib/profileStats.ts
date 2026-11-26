@@ -3,7 +3,7 @@
 // read the same figures.
 import type { LibraryDeck } from './library';
 import type { PracticeGame } from './practiceLog';
-import { COACH_SCORING, gradeFor, scoredNow } from './practiceLog';
+import { COACH_SCORING, costlyNow, gradeFor, scoredNow } from './practiceLog';
 import { SMALL_SAMPLE } from './playedRecord';
 import { deckSource } from './deckSource';
 
@@ -70,10 +70,11 @@ export interface Headline {
   bestWinStreak: number;
   /**
    * The coach's scorecards scored the current way (practiceLog.ts scoredNow): the average share of the decisions that
-   * mattered handled well, its letter, and the average number of confirmed costly moves a game (null when no game has
-   * such a scorecard).
+   * mattered handled well, its letter, and the average number of confirmed Mistakes and Blunders a game, from the
+   * scorecards that count them under the current lines (practiceLog.ts costlyNow; absent when none does). Null when no
+   * game has such a scorecard.
    */
-  coach: { games: number; avgPct: number; grade: 'A' | 'B' | 'C' | 'D'; v: typeof COACH_SCORING; costly: number } | null;
+  coach: { games: number; avgPct: number; grade: 'A' | 'B' | 'C' | 'D'; v: typeof COACH_SCORING; costly?: number } | null;
   /** games whose scorecard was scored the old way (before 2026-11-25): shown as they were, never in the average above */
   coachOld?: number;
 }
@@ -94,7 +95,7 @@ export function headline(games: readonly PracticeGame[]): Headline {
     if (g.coach && !scoredNow(g.coach)) coachOld++;
     else if (g.coach && g.coach.measured > 0) {
       pcts.push((100 * g.coach.fine) / g.coach.measured);
-      costly.push(g.coach.costly ?? g.coach.measured - g.coach.fine);
+      if (costlyNow(g.coach)) costly.push(g.coach.costly ?? 0);
     }
   }
   const order = newestFirst(games);
@@ -118,7 +119,10 @@ export function headline(games: readonly PracticeGame[]): Headline {
     byTier: BOT_TIERS.flatMap((tier) => (tiers.has(tier) ? [{ tier, ...tiers.get(tier)! }] : [])),
     streak,
     bestWinStreak: best,
-    coach: avgPct === null ? null : { games: pcts.length, avgPct, grade: gradeFor(avgPct), v: COACH_SCORING, costly: Math.round((10 * costly.reduce((a, b) => a + b, 0)) / costly.length) / 10 },
+    coach:
+      avgPct === null
+        ? null
+        : { games: pcts.length, avgPct, grade: gradeFor(avgPct), v: COACH_SCORING, ...(costly.length ? { costly: Math.round((10 * costly.reduce((a, b) => a + b, 0)) / costly.length) / 10 } : {}) },
     ...(coachOld ? { coachOld } : {}),
   };
 }

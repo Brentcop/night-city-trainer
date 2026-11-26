@@ -190,15 +190,16 @@ function review(decisions: DecisionReview[]): GameReview {
 const CHOICES = [[0], [1]];
 
 describe('the two awkward cases of confirmation', () => {
-  // screening: 4.5 ± 1 points (0.11 Gigs, a Close call); confirmed: 30 ± 2 points (0.75 Gigs, a Mistake). Under the
-  // current rules a narrow close call (gap < MISTAKE_GIGS) is not confirmed, so a record like this is one made under rules that flagged it.
+  // screening: 4.5 ± 1 points (0.11 Gigs, a Close call); confirmed: 30 ± 2 points (0.75 Gigs, a Slip since the lines
+  // were raised on 2026-11-25). Under the current rules a narrow close call (gap < CHECK_GIGS) is not confirmed, so a
+  // record like this is one made under rules that flagged it.
   const confirmedNotFlagged = decision({ regret: 30, raw: 30, se: 2, others: [[4.5, 1], [60, 3]], confirmed: 16, first: { regret: 4.5, raw: 4.5, se: 1, gameLosing: false } });
   // screening: a clear 30 ± 2 points, a Mistake, which the current rules confirm; recorded with no confirmation
   const flaggedNotConfirmed = decision({ regret: 30, raw: 30, se: 2, others: [[30, 2]] });
 
   it('(a) a confirmed move the current rules would not confirm is rated from its screening pass', () => {
     const rec = buildReviewRecord(review([confirmedNotFlagged]), [], { id: 'x', made: 'm' });
-    expect(rec.moves[0]).toMatchObject({ r: 'mistake', gap: 0.75, se: 0.05 });
+    expect(rec.moves[0]).toMatchObject({ r: 'slip', gap: 0.75, se: 0.05 });
     expect(rec.moves[0]!.ms).toEqual({ f: [4.5, 100], c: [30, 200], o: [450, 100, 6000, 300] });
     const again = rerateRecord({ ...rec, rules: 1 });
     expect(again.ok).toBe(true);
@@ -206,6 +207,30 @@ describe('the two awkward cases of confirmation', () => {
     // its screening figures, as a fresh run under these rules would show them; the confirmation is still kept
     expect(again.rec.moves[0]).toMatchObject({ r: 'close', gap: 0.11, se: 0.03, ms: rec.moves[0]!.ms });
     expect(again.rec.moves[0]!.raw).toBeUndefined();
+  });
+
+  it('a review stored under rules 4 (Mistake from 0.375 Gigs, Blunder from 1) is rated again under the raised lines, nothing re-measured', () => {
+    // seat 0: three confirmed costly moves, so no Hard check (more than HARD_CHECK_MAX_FLAGS of 0.375 Gigs or more)
+    // (the reviewer caps a gap at 120 points, 3 Gigs, and keeps the raw one beside it)
+    const cap = (x: number) => Math.min(120, x);
+    const conf = (raw: number, at: number) => decision({ seq: at, at, regret: cap(raw), raw, se: 2, others: [[raw, 2]], confirmed: 16, first: { regret: cap(raw + 2), raw: raw + 2, se: 2, gameLosing: false } });
+    // seat 1: its only costly move, checked with Hard play-outs (CHECK_GIGS counts it, as the old Mistake line did)
+    const lone = decision({ seq: 9, at: 0, player: 1, regret: 30, raw: 30, se: 2, others: [[30, 2]], confirmed: 16, first: { regret: 32, raw: 32, se: 2, gameLosing: false }, hard: { worlds: 16, regret: 50, raw: 50, se: 3, gameLosing: false } });
+    const rec = buildReviewRecord(review([conf(30, 0), conf(60, 1), conf(140, 2), lone]), [], { id: 'x', made: 'm' });
+    expect(rec.moves.map((m) => [m.r, m.gap])).toEqual([
+      ['slip', 0.75],
+      ['mistake', 1.5],
+      ['blunder', 3],
+      ['mistake', 1.25],
+    ]);
+    // as rules 4 stored them: 0.75 a Mistake, 1.5 a Blunder, 3.5 (capped at 3) a Blunder, the Hard-checked 1.25 a Blunder
+    const stored: GameReviewRecord = { ...rec, rules: 4, moves: rec.moves.map((m, i) => ({ ...m, r: (['mistake', 'blunder', 'blunder', 'blunder'] as const)[i]! })) };
+    const again = rerateRecord(stored);
+    expect(again.ok).toBe(true);
+    if (!again.ok) return;
+    expect(again.rec).toMatchObject({ rules: REVIEW_RULES, rerated: 4 });
+    expect(again.rec.moves).toEqual(rec.moves);
+    expect(REVIEW_RULES).toBe(5);
   });
 
   it('(b) a move the current rules confirm that was not confirmed: never made up, the review comes back stale', () => {

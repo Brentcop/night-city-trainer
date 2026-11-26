@@ -14,8 +14,10 @@ import type { CoachedDecision } from '../src/lib/coachedReplay';
 import {
   accuracyOf,
   BEST_GIGS,
+  BLUNDER_GIGS,
   buildReviewRecord,
   CAP_GIGS,
+  CHECK_GIGS,
   CLOSE_GIGS,
   coachRatingOf,
   coachRatingsFrom,
@@ -23,6 +25,7 @@ import {
   costlyText,
   FIXED_SE_GIGS,
   GIG,
+  hardFlag,
   isKeyMoment,
   listed,
   MISTAKE_GIGS,
@@ -66,17 +69,33 @@ describe('rateMeasured: bands with the standard error', () => {
     expect(rateMeasured({ gap: 0.08, se: 0.01 })).toBe('best');
     expect(rateMeasured({ gap: 0.12, se: 0.01 })).toBe('close');
     expect(rateMeasured({ gap: 0.3, se: 0.05 })).toBe('slip');
-    expect(rateMeasured({ gap: 0.5, se: 0.1 })).toBe('mistake');
-    expect(rateMeasured({ gap: 1.2, se: 0.2 })).toBe('blunder');
+    // the lines since 2026-11-25 (REVIEW_RULES 5, reports/review-validity-2026-11-25.md "Raising the Mistake line"): a
+    // Mistake from 1 Gig, a Blunder from 3 (the cap); below 1 Gig a clear gap is a Slip
+    expect([MISTAKE_GIGS, BLUNDER_GIGS, CHECK_GIGS, CAP_GIGS]).toEqual([1, 3, 0.375, 3]);
+    expect(rateMeasured({ gap: 0.5, se: 0.1 })).toBe('slip');
+    expect(rateMeasured({ gap: 0.99, se: 0.1 })).toBe('slip');
+    expect(rateMeasured({ gap: 1, se: 0.1 })).toBe('mistake');
+    expect(rateMeasured({ gap: 1.2, se: 0.2 })).toBe('mistake');
+    expect(rateMeasured({ gap: 2.99, se: 0.2 })).toBe('mistake');
+    expect(rateMeasured({ gap: 3, se: 0.2 })).toBe('blunder');
+    expect(rateMeasured({ gap: 3, raw: 7, se: 0.5 })).toBe('blunder');
   });
   it('a gap inside 2 standard errors is a close call however large', () => {
     expect(rateMeasured({ gap: 0.9, se: 0.5 })).toBe('close');
     expect(rateMeasured({ gap: 1.5, se: 0.8 })).toBe('close');
-    expect(rateMeasured({ gap: 1.5, se: 0.7 })).toBe('blunder');
+    expect(rateMeasured({ gap: 1.5, se: 0.7 })).toBe('mistake');
   });
-  it('a clear mistake that loses the game in the play-outs is a Blunder', () => {
-    expect(rateMeasured({ gap: 0.5, se: 0.1, gameLosing: true })).toBe('blunder');
-    expect(rateMeasured({ gap: 0.3, se: 0.05, gameLosing: true })).toBe('slip');
+  it('losing the game in more play-outs no longer makes a Blunder (dropped with the raised lines: none had a gap under 3 Gigs)', () => {
+    expect(rateMeasured({ gap: 0.5, se: 0.1, gameLosing: true })).toBe('slip');
+    expect(rateMeasured({ gap: 1.5, se: 0.1, gameLosing: true })).toBe('mistake');
+    expect(rateMeasured({ gap: 3, raw: 20, se: 1, gameLosing: true })).toBe('blunder');
+  });
+  it('what is confirmed and Hard-checked did not move with the Mistake line (CHECK_GIGS)', () => {
+    // a close call from 0.375 Gigs is confirmed; a Slip of 0.5 Gigs counts for the Hard check, as the Mistake it was
+    expect(confirmFlag(review({ regret: 16, raw: 16, se: 10, others: [[16, 10], [80, 4]] }))).toBe(true);
+    expect(confirmFlag(review({ regret: 14, raw: 14, se: 10, others: [[14, 10], [80, 4]] }))).toBe(false);
+    expect(hardFlag(review({ regret: 20, raw: 20, se: 2, others: [[20, 2]] }))).toBe(true);
+    expect(hardFlag(review({ regret: 14, raw: 14, se: 2, others: [[14, 2]] }))).toBe(false);
   });
   it('No clear difference: a decided game, or every option within the noise of the best', () => {
     expect(rateMeasured({ gap: 2, se: 0.1, decided: true })).toBe('unclear');
@@ -111,8 +130,8 @@ describe('rateMeasured: bands with the standard error', () => {
     expect(rateMeasured({ gap: 0.32, se: 0.02 })).toBe('close'); // under one evaluation point of spread
     expect(rateMeasured({ gap: 0.32, se: 0.03 })).toBe('slip');
     // it is given a typical SE (0.25 Gigs): a larger fixed difference still counts, and a loss in every world is certain
-    expect(rateMeasured({ gap: 0.6, se: 0 })).toBe('mistake');
-    expect(rateMeasured({ gap: 2, se: 0 })).toBe('blunder');
+    expect(rateMeasured({ gap: 0.6, se: 0 })).toBe('slip');
+    expect(rateMeasured({ gap: 2, se: 0 })).toBe('mistake');
     expect(rateMeasured({ gap: 3, raw: 30, se: 0 })).toBe('blunder');
     // no paired SE at all (not measured in shared worlds): the gap alone, as before
     expect(rateMeasured({ gap: 0.31 })).toBe('slip');
@@ -132,7 +151,8 @@ const review = (o: Partial<DecisionReview>): DecisionReview => ({ i: 0, turn: 3,
 
 describe('rateOracle reads the reviewer’s points', () => {
   it('converts to Gigs', () => {
-    expect(rateOracle(review({ regret: 24, se: 4, others: [[24, 4]] }))).toBe('mistake');
+    expect(rateOracle(review({ regret: 24, se: 4, others: [[24, 4]] }))).toBe('slip');
+    expect(rateOracle(review({ regret: 48, se: 4, others: [[48, 4]] }))).toBe('mistake');
     expect(rateOracle(review({ regret: 24, se: 14, others: [[24, 14]] }))).toBe('unclear');
     expect(rateOracle(review({ regret: 24, se: 14, others: [[24, 14], [80, 10]] }))).toBe('close');
     expect(rateOracle(review({ regret: 0, top: true, decided: true }))).toBe('unclear');
@@ -180,14 +200,16 @@ describe('the coach’s grades from play are kept', () => {
     expect(saidOf(base('mistake', 0.62, 0.1))).toEqual({ v: 'mistake', gap: 0.62, se: 0.1, best: 'A', why: 'Because.' });
     expect(saidOf(base('best', -0.1, 0.05))).toMatchObject({ v: 'best', gap: 0 });
     expect(saidOf(base('agree', 0, undefined, 'B'))).toEqual({ v: 'agree', gap: 0, why: 'Because.' });
-    expect(saidText(saidOf(base('mistake', 0.62, 0.1)), 'unit')).toBe('During play the coach said Mistake: it preferred A. Coach: Because.');
-    expect(saidText(saidOf(base('mistake', 1.4, 0.1)), 'unit')).toMatch(/^During play the coach said Blunder: it preferred A/);
+    // named by the gap under the current lines: a 0.62-Gig 'mistake' stored before 2026-11-25 reads as a Slip
+    expect(saidText(saidOf(base('mistake', 0.62, 0.1)), 'unit')).toBe('During play the coach said Slip: it preferred A. Coach: Because.');
+    expect(saidText(saidOf(base('mistake', 1.4, 0.1)), 'unit')).toBe('During play the coach said Mistake: it preferred A. Coach: Because.');
+    expect(saidText(saidOf(base('mistake', 3.4, 0.1)), 'unit')).toMatch(/^During play the coach said Blunder: it preferred A/);
     expect(saidText(saidOf(base('inaccuracy', 0.3, 0.05, 'Pass turn')), 'unit')).toMatch(/^During play the coach said Slip: it preferred End turn/);
     expect(saidText(saidOf(base('close', 0.05, 0.01)), 'unit')).toMatch(/^During play the coach said Close call/);
     expect(saidText(saidOf(base('best', 0.02, 0.01)), 'unit')).toBe('During play the coach said Best: as good as A. Coach: Because.');
     expect(saidText(saidOf(base('agree', 0, undefined, 'B')), 'unit')).toBe('During play the coach said this was its own pick. Coach: Because.');
     // since the coach's own changes of 2026-11-25: a confirmed grade is the confirmation's, an unclear one says so
-    expect(saidText(saidOf({ ...base('mistake', 0.62, 0.1), confirmed: 16 }), 'unit')).toBe('During play the coach said Mistake, after checking it on 16 fresh play-outs: it preferred A. Coach: Because.');
+    expect(saidText(saidOf({ ...base('mistake', 1.62, 0.1), confirmed: 16 }), 'unit')).toBe('During play the coach said Mistake, after checking it on 16 fresh play-outs: it preferred A. Coach: Because.');
     expect(saidText(saidOf({ ...base('close', 0.05, 0.01), unclear: true }), 'unit')).toBe('During play the coach said No clear difference (it would have picked A): every option it measured came out about the same. Coach: Because.');
     const rec = { at: 1, turn: 2, options: ['A', 'B'], chose: 1, coach: 0, why: 'W.', verdict: 'close', gap: 0.05, se: 0.01, scores: [], unclear: true, confirmed: 16 };
     expect(coachRatingOf(rec)).toMatchObject({ verdict: 'close', unclear: true, confirmed: 16 });
@@ -340,8 +362,9 @@ describe('the stored record', () => {
     expect(bad.moves[1]!.r).toBe('slip');
     // without its Hard check the record cannot be rated again: the check is never made up
     expect(rerateRecord({ ...rec, rules: 1, moves: rec.moves.map((m) => (m.seq === 1 ? { ...m, ms: { ...m.ms!, h: undefined } } : m)) })).toMatchObject({ ok: false, why: 'unconfirmed', moves: [1] });
-    // with the check turned off, it is rated from its screening pass
-    expect(rerateRecord({ ...rec, rules: 1, hard: 0 })).toMatchObject({ ok: true, rec: { moves: [{}, { r: 'blunder' }, {}, {}] } });
+    // with the check turned off, it is rated from its screening pass (0.75 Gigs and game-losing: a Blunder until the
+    // lines were raised on 2026-11-25, a Slip now)
+    expect(rerateRecord({ ...rec, rules: 1, hard: 0 })).toMatchObject({ ok: true, rec: { moves: [{}, { r: 'slip' }, {}, {}] } });
     expect(asReviewRecord(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
     expect(asReviewRecord({ ...rec, schema: 2 })).toBeNull();
     expect(asReviewRecord({ ...rec, moves: [{ ...rec.moves[0], r: 'great' }] })).toBeNull();

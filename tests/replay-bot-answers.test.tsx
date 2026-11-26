@@ -201,7 +201,7 @@ describe("the bot's answers in the practice replay", () => {
     await expect(runGameReview({ id: 'x', spec: practiceSpec(older), coach: [], rollouts: 1, made: 'm' })).rejects.toThrow(NO_BOT_WORDS);
     const coach: CoachRating[] = [
       { at: 0, turn: 1, chose: 1, coach: 1, chosen: 'Keep hand', best: 'Keep hand', why: '', verdict: 'agree', gap: 0, alts: [[0, 0.2, 0.1]] },
-      { at: 3, turn: 2, chose: 2, coach: 0, chosen: 'Pass turn', best: 'Play Big Unit', why: 'w', verdict: 'mistake', gap: 1.2, se: 0.1, alts: [] },
+      { at: 3, turn: 2, chose: 2, coach: 0, chosen: 'Pass turn', best: 'Play Big Unit', why: 'w', verdict: 'mistake', gap: 3.2, se: 0.1, alts: [] },
     ];
     const html = renderToStaticMarkup(<GameReviewView src={{ replay: older, coach, persist: false }} />);
     expect(html).toContain('This game can&#x27;t be reviewed');

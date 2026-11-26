@@ -1,6 +1,6 @@
 // The Game review of a recorded practice game: re-simulate it (your seat replays your answers, the bot plays itself),
 // grade both seats with the match reviewer's oracle in the same way (since 2026-11-25: your moves too, with the coach's
-// grade from play kept beside each for reference; a seat's rare Mistakes and Blunders checked again with Hard play-outs),
+// grade from play kept beside each for reference; a seat's rare costly ratings, CHECK_GIGS or more behind, checked again with Hard play-outs),
 // and turn the result into the stored record (src/lib/gameReview.ts). One function for the browser's review worker and
 // the CLI (scripts/review.ts), so both rate a game the same way. The replay is strict (src/sim/practiceReview.ts): a
 // record from another simulator version that does not keep both seats' answers and its position, or one that no longer
@@ -23,7 +23,7 @@ export interface GameReviewJob {
   rollouts?: number;
   /** fresh worlds a flagged move (Slip or worse, a wide close call) is confirmed on (default GAME_REVIEW_CONFIRM; 0: not confirmed) */
   confirm?: number;
-  /** fresh worlds a Mistake or Blunder is checked on with Hard play-outs, in a seat with at most HARD_CHECK_MAX_FLAGS of them (default GAME_REVIEW_HARD; 0: not checked) */
+  /** fresh worlds a rating CHECK_GIGS or more behind is checked on with Hard play-outs, in a seat with at most HARD_CHECK_MAX_FLAGS of them (default GAME_REVIEW_HARD; 0: not checked) */
   hard?: number;
   /** the oracle's seed (default: the game seed) */
   oracleSeed?: number;

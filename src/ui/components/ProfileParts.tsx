@@ -186,8 +186,8 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
           <span className="profile-tile-v">{h.coach ? h.coach.grade : '—'}</span>
           <span className="small muted">
             {h.coach
-              ? h.coach.v === 2
-                ? `${h.coach.avgPct}% of the decisions that mattered handled well${h.coach.costly !== undefined ? `, ${h.coach.costly} costly moves a game` : ''}, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'}`
+              ? h.coach.v === 2 || h.coach.v === 3
+                ? `${h.coach.avgPct}% of the decisions that mattered handled well${h.coach.costly !== undefined ? `, ${h.coach.costly} Mistakes or worse a game` : ''}, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'}`
                 : `${h.coach.avgPct}% fine moves, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'} (scored the old way, before 2026-11-25)`
               : 'not recorded yet'}
             {h.coachOld ? ` · ${h.coachOld} earlier game${h.coachOld === 1 ? '' : 's'} scored the old way, not averaged` : ''}

@@ -17,10 +17,30 @@ export const BEST_GIGS = 0.1;
 /** A gap under this many Gigs, or within SE_FACTOR paired standard errors, is a close call (the coach's CLOSE_GIGS). */
 export const CLOSE_GIGS = 0.15;
 export const SE_FACTOR = 2;
-/** A clear gap of this many Gigs or more is a mistake (the coach's MISTAKE_GIGS, the reviewer's BLUNDER line). */
-export const MISTAKE_GIGS = 0.375;
-/** A clear gap of a whole Gig or more is a blunder (or a mistake-sized gap that loses the game in the play-outs). */
-export const BLUNDER_GIGS = 1;
+/**
+ * A clear gap of this many Gigs or more is a Mistake, for the review and the coach alike (src/ai/coach.ts imports it).
+ * Set on 2026-11-25 (the owner's decision "Raise it", docs/REVIEW_2026-11-25.md row 6) so that a Mistake marks a
+ * measurable cost: the smallest gap from which the costly ratings, and the bin just above it, cost win chance with a 90%
+ * interval above 0 when the Hard bot played on from them to the end (reports/review-validity-2026-11-25.md, "Raising the
+ * Mistake line"). It was 0.375 (the reviewer's 15-point "blunder" of the hand-weights era); played on, the ratings between
+ * 0.375 and 1 Gig cost nothing measurable on average, and from 1 Gig about 4 (coach) to 7 (review) points of win chance.
+ */
+export const MISTAKE_GIGS = 1;
+/**
+ * A clear gap of this many Gigs or more (CAP_GIGS: a gap at or past the cap) is a Blunder, set with MISTAKE_GIGS by the
+ * same rule: the smallest gap from which the ratings cost at least twice the Mistake band's, by a difference with a 90%
+ * interval above 0 (the coach's: 15 points against 4; the review's alone would have put it at 2). It was 1 Gig. A Mistake
+ * that loses the game in clearly more play-outs (`gameLosing`) was a Blunder too; none had a gap under 3 Gigs in the
+ * measured games, so the rule written first dropped that clause (the move's words still say it).
+ */
+export const BLUNDER_GIGS = 3;
+/**
+ * The line from which a move outside the noise is checked (CHECK_GIGS ≤ MISTAKE_GIGS): a close call this wide is confirmed on
+ * fresh worlds (confirmFlag, the coach's needsConfirm), and a seat's ratings this far behind are what the Hard check counts
+ * (hardFlag). It is the old Mistake line, kept apart when the Mistake line was raised (2026-11-25) so that what is measured
+ * did not change: the confirmation keeps the six-world false Slips out, and the Hard check was measured with this count.
+ */
+export const CHECK_GIGS = 0.375;
 /** Gaps are capped here when averaged (the reviewer's CAP, 120 points). */
 export const CAP_GIGS = 3;
 /** Accuracy = 100 × exp(−average loss / ACCURACY_SCALE_GIGS): with 1 Gig, 100 × e^(−Gigs lost per counted move). */
@@ -47,9 +67,12 @@ export const FIXED_GAP_SE_GIGS = 0.25;
  * docs/REVIEW_2026-11-25.md): mulligans not rated ('unrated'); no Sharp or Inspired (confirmed on 16 fresh worlds they
  * still came more often in Easy's won games than its lost ones: reports/review-validity-2026-11-25.md); your moves rated
  * by the oracle like the rival's, the coach's grade from play kept beside them; a seat's rare Mistakes and Blunders rated
- * from their Hard check (hardFlag, HARD_CHECK_MAX_FLAGS).
+ * from their Hard check (hardFlag, HARD_CHECK_MAX_FLAGS). 5 (2026-11-25, the owner's decision "Raise it"): the Mistake
+ * line raised from 0.375 to MISTAKE_GIGS and the Blunder line from 1 to BLUNDER_GIGS, so that a Mistake marks a measurable
+ * cost in win chance (reports/review-validity-2026-11-25.md, "Raising the Mistake line"); what is confirmed and Hard-checked
+ * is unchanged (CHECK_GIGS), so every review of rules 2 to 4 with kept measurements is rated again from them.
  */
-export const REVIEW_RULES = 4;
+export const REVIEW_RULES = 5;
 /**
  * How a review is measured, kept apart from how it is rated (REVIEW_RULES): the oracle (src/ai/reviewer.ts: its
  * play-outs, worlds, quick screen, candidates and confirmation stream), the play-outs per option (GAME_REVIEW_ROLLOUTS),
@@ -84,8 +107,9 @@ export const GAME_REVIEW_ROLLOUTS = 8;
  */
 export const GAME_REVIEW_CONFIRM = 16;
 /**
- * Fresh worlds a Mistake or Blunder is checked on with the Hard bot playing on both seats, in a seat with at most
- * HARD_CHECK_MAX_FLAGS of them (ReviewOptions.hardCheck, 2026-11-25; docs/REVIEW_2026-11-25.md R2). Measured with the
+ * Fresh worlds a rating CHECK_GIGS or more behind (a Mistake or Blunder until the lines were raised) is checked on with
+ * the Hard bot playing on both seats, in a seat with at most HARD_CHECK_MAX_FLAGS of them (ReviewOptions.hardCheck,
+ * 2026-11-25; docs/REVIEW_2026-11-25.md R2). Measured with the
  * rule written first (reports/review-validity-2026-11-25.md): the ratings it keeps gain clearly more when played on to
  * the end with Hard than the ones it drops, it keeps 95% of those whose gain is clearly positive, and capped at 2 a seat
  * it adds about half to a review's time. 0 turns it off. Part of the measurement, like the play-outs.
@@ -120,9 +144,9 @@ export const RATING_INFO: Record<Rating, RatingInfo> = {
   sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'Older reviews only. The only good move (every other option measured is clearly worse by a mistake or more), and not the one a quick read picks first.' },
   best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or as good: no measurable difference.' },
   close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but by too little, or too uncertainly, to call. Not counted as a loss.' },
-  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: `Clearly behind the best move found, by a small margin. ${costSentence('review', 'slip')}` },
+  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: `Clearly behind the best move found in the play-outs, by less than a Mistake. ${costSentence('review', 'slip')}` },
   mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: `Clearly behind the best move found. ${costSentence('review', 'mistake')}` },
-  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: `Clearly behind by a large margin, or a mistake that also loses the game in at least 1 in 4 more of the play-outs. ${costSentence('review', 'blunder')}` },
+  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: `Clearly behind by a large margin, often one that decides the game in the play-outs. ${costSentence('review', 'blunder')}` },
   forced: { label: 'Forced', mark: '–', tone: 'none', means: 'Only one option. Not counted.' },
   unclear: { label: 'No clear difference', mark: '=', tone: 'none', means: 'Every option measured comes out about the same, or the game was already decided. Not counted.' },
   unrated: { label: 'Not rated', mark: '·', tone: 'none', means: 'A kind of move the review does not rate: the mulligan, whose difference stays inside the noise even over whole games. Not counted.' },
@@ -187,7 +211,7 @@ function noDifference(m: Measured): boolean {
 function band(m: Measured): RatingKey {
   if (m.gap <= BEST_GIGS) return 'best';
   if (withinNoise(m.raw ?? m.gap, m.se)) return 'close';
-  if (m.gap >= BLUNDER_GIGS || (m.gap >= MISTAKE_GIGS && m.gameLosing)) return 'blunder';
+  if (m.gap >= BLUNDER_GIGS) return 'blunder';
   return m.gap >= MISTAKE_GIGS ? 'mistake' : 'slip';
 }
 
@@ -196,9 +220,10 @@ function band(m: Measured): RatingKey {
  *   No clear difference  the game was already decided, or every option measured is within the noise of the best
  *   Best                 within BEST_GIGS (0.1) of the best
  *   Close call           within the noise: under CLOSE_GIGS (0.15), or within 2 paired SE
- *   Slip                 outside the noise, under MISTAKE_GIGS (0.375)
- *   Mistake              outside the noise, MISTAKE_GIGS to BLUNDER_GIGS (1)
- *   Blunder              outside the noise and BLUNDER_GIGS or more, or a mistake that loses the game in the play-outs
+ *   Slip                 outside the noise, under MISTAKE_GIGS (1)
+ *   Mistake              outside the noise, MISTAKE_GIGS to BLUNDER_GIGS (3)
+ *   Blunder              outside the noise and BLUNDER_GIGS or more (a gap at or past the cap)
+ * (the lines since 2026-11-25, REVIEW_RULES 5: before, 0.375 and 1, and a Mistake that lost the game in the play-outs was a Blunder)
  *
  * Sharp and Inspired (the only good move, which a quick 1-ply read did not pick first; Inspired: ranked third or lower,
  * its pick a blunder) were given until 2026-11-25 from the screening pass. Confirmed on 16 fresh worlds they did follow
@@ -239,22 +264,23 @@ export const rateOracle = (d: DecisionReview): Rating => rateMeasured(oracleMeas
 const COSTLY: ReadonlySet<Rating> = new Set(['slip', 'mistake', 'blunder']);
 /**
  * The decisions the Game review confirms on fresh worlds (ReviewOptions.confirm.flag): those its screening play-outs rate
- * Slip or worse, or close calls with a gap at least as wide as a Mistake.
+ * Slip or worse, or close calls with a gap of CHECK_GIGS or more (as wide as a Mistake was before the lines were raised).
  */
 export const confirmFlag = (d: DecisionReview): boolean => {
   const r = rateOracle(d);
   if (COSTLY.has(r)) return true;
-  return r === 'close' && gigs(d.raw ?? d.regret) >= MISTAKE_GIGS;
+  return r === 'close' && gigs(d.raw ?? d.regret) >= CHECK_GIGS;
 };
 
 /**
- * The decisions the Hard check counts and checks (ReviewOptions.hardCheck.flag): those rated Mistake or Blunder after the
- * confirmation, before any Hard check (a seat with 1 to HARD_CHECK_MAX_FLAGS of them has its main-phase ones and its
- * reactions checked).
+ * The decisions the Hard check counts and checks (ReviewOptions.hardCheck.flag): those rated Slip or worse with a gap of
+ * CHECK_GIGS or more after the confirmation, before any Hard check (a seat with 1 to HARD_CHECK_MAX_FLAGS of them has its
+ * main-phase ones and its reactions checked). These were the Mistakes and Blunders before the lines were raised
+ * (2026-11-25), the set the Hard check was measured with (docs/REVIEW_2026-11-25.md R2).
  */
 export const hardFlag = (d: DecisionReview): boolean => {
   const r = rateOracle({ ...d, hard: undefined });
-  return r === 'mistake' || r === 'blunder';
+  return COSTLY.has(r) && gigs(d.regret) >= CHECK_GIGS;
 };
 
 // ---------------------------------------------------------------------------------------------------- coach grades
