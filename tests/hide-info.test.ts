@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import type { Agent, DeckList, PlayerId } from '../src/engine/types';
 import { hideInfo } from '../src/ai/heuristic';
+import { shuffleInPlace } from '../src/engine/rng';
+import { searchTop } from '../src/engine/scripts/helpers';
+import { viewFor } from '../src/net/view';
 
 const first: Agent = { name: 'first', decide: async () => [0] };
 const deckA: DeckList = {
@@ -86,15 +89,37 @@ describe('hideInfo', () => {
   });
 });
 
-// REVIEW_2026-11-25 C5: the cards both players know are in the rival's hand stay there in every projection.
-describe('hideInfo keeps the cards both players know (keepShown)', () => {
-  /** A game recording PlayerState.shown, with one of the rival's cards taken into its hand from the trash. */
+// REVIEW_2026-11-25 C5 (SIM_VERSION 13): the cards both players know are in the rival's hand stay there in every projection.
+describe('hideInfo keeps the cards both players know', () => {
+  /** A game with one of the rival's cards taken into its hand from the trash. */
   function shownGame(seed: number) {
     const g = game(seed);
-    g.tracksShown = true;
     const u = g.P(1).trash[0];
     g.move(u, 'hand');
     return { g, u };
+  }
+
+  /** hideInfo as it was until SIM_VERSION 12: the whole rival hand re-dealt. */
+  function hideInfoV12(g: Game, viewer: PlayerId) {
+    for (const pl of [0, 1] as PlayerId[]) shuffleInPlace(g.s, g.P(pl).deck);
+    const r = (1 - viewer) as PlayerId;
+    const R = g.P(r);
+    const n = R.hand.length;
+    for (const u of R.hand) g.c(u).zone = 'deck';
+    R.deck.push(...R.hand);
+    R.hand = [];
+    shuffleInPlace(g.s, R.deck);
+    for (let i = 0; i < n; i++) g.drawRaw(r);
+    const permute = (uids: number[]) => {
+      if (uids.length < 2) return;
+      const ids = shuffleInPlace(
+        g.s,
+        uids.map((u) => g.c(u).defId).sort(),
+      );
+      uids.forEach((u, k) => (g.c(u).defId = ids[k]));
+    };
+    permute(g.P(viewer).legends.filter((u) => !g.c(u).faceUp && !g.c(u).known));
+    permute(R.legends.filter((u) => !g.c(u).faceUp));
   }
 
   it('the engine records a card coming into a hand from a public zone or revealed from the deck, and forgets it when it leaves', () => {
@@ -114,26 +139,24 @@ describe('hideInfo keeps the cards both players know (keepShown)', () => {
     expect(g.P(1).shown).toEqual([revealed]);
     g.sell(1, revealed);
     expect('shown' in g.P(1)).toBe(false);
-    // copies carry the switch
-    expect(g.clone([first, first]).tracksShown).toBe(true);
   });
 
-  it('records nothing while the switch is off, so the state is exactly as before', () => {
+  it('a game where no card comes into a hand that way has no such field', () => {
     const g = game(3);
-    g.move(g.P(1).trash[0], 'hand');
-    g.move(g.P(1).deck[0], 'hand', { revealed: true });
+    g.drawRaw(1);
+    g.move(g.P(1).deck[0], 'hand');
     expect('shown' in g.P(1)).toBe(false);
     expect('shown' in g.P(0)).toBe(false);
   });
 
   it('keeps a known card in its place in the rival hand and re-deals only the rest', () => {
-    let movedWithout = 0;
+    let movedBefore = 0;
     for (let seed = 1; seed <= 20; seed++) {
       const { g, u } = shownGame(seed);
       const at = g.P(1).hand.indexOf(u);
       const rivalUnseen = sorted(ids(g, [...g.P(1).hand, ...g.P(1).deck]));
       const cg = g.clone([first, first]);
-      hideInfo(cg, 0, true);
+      hideInfo(cg, 0);
       expect(cg.P(1).hand.length).toBe(g.P(1).hand.length);
       expect(cg.P(1).hand[at]).toBe(u);
       expect(cg.c(u).zone).toBe('hand');
@@ -142,31 +165,27 @@ describe('hideInfo keeps the cards both players know (keepShown)', () => {
       for (const x of cg.P(1).deck) expect(cg.c(x).zone).toBe('deck');
       // the other cards are re-dealt
       expect(cg.P(1).hand.filter((x) => x !== u)).not.toEqual(g.P(1).hand.filter((x) => x !== u));
-      // without keepShown the whole hand is re-dealt, the known card included
+      // until SIM_VERSION 12 the whole hand was re-dealt, the known card included
       const c2 = g.clone([first, first]);
-      hideInfo(c2, 0);
-      if (!c2.P(1).hand.includes(u)) movedWithout++;
+      hideInfoV12(c2, 0);
+      if (!c2.P(1).hand.includes(u)) movedBefore++;
     }
-    expect(movedWithout).toBeGreaterThan(10);
+    expect(movedBefore).toBeGreaterThan(10);
   });
 
   it('deals exactly as before when no card is known', () => {
     for (let seed = 1; seed <= 10; seed++) {
       const g = game(seed);
-      g.tracksShown = true;
       const a = g.clone([first, first]);
       const b = g.clone([first, first]);
-      hideInfo(a, 0);
-      hideInfo(b, 0, true);
+      hideInfoV12(a, 0);
+      hideInfo(b, 0);
       expect(JSON.stringify(b.s)).toBe(JSON.stringify(a.s));
     }
   });
 
   it('a revealing search records its cards, and the online view never carries the list', async () => {
-    const { searchTop } = await import('../src/engine/scripts/helpers');
-    const { viewFor } = await import('../src/net/view');
     const g = game(5);
-    g.tracksShown = true;
     const picked = await searchTop(g, 1, 3, { max: 1, rest: 'bottom' });
     expect(picked.length).toBe(1);
     expect(g.P(1).shown).toEqual(picked);

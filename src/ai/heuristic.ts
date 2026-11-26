@@ -187,13 +187,6 @@ export interface HeuristicOptions {
    * false (default) = as before; no bot sets it.
    */
   clampDeep?: boolean;
-  /**
-   * REVIEW_2026-11-25 C5. Every projection and play-out world keeps the cards both players know are in the rival's hand
-   * (`PlayerState.shown`: revealed into it, or taken into it from a public zone) and re-deals only the rest (`hideInfo`).
-   * The bot turns on the game's record of them (`Game.tracksShown`) when it first decides, and its play-out and
-   * projection bots inherit the setting. false (default) = the whole hand re-dealt, exactly as before.
-   */
-  keepShown?: boolean;
 }
 
 /** One entry of HeuristicAgent.lastAlternatives. */
@@ -339,7 +332,6 @@ export class HeuristicAgent implements Agent {
       rolloutPool: opts.rolloutPool ?? undefined,
       gradeWeights: opts.gradeWeights ?? null,
       clampDeep: opts.clampDeep ?? false,
-      keepShown: opts.keepShown ?? false,
     };
     this.name = this.opts.name;
     this.rng = this.opts.seed;
@@ -420,16 +412,15 @@ export class HeuristicAgent implements Agent {
     if (!this.opts.fastTricks) return this.fastAgentsPlain(p);
     const pair = this.fastAgentsPlain(p) as [HeuristicAgent, HeuristicAgent];
     const tw = this.opts.trickWeights ?? this.opts.weights;
-    const mk = (seat: PlayerId) => new HeuristicAgent({ lookahead: false, weights: pair[seat].opts.weights, fastTricks: true, trickWeights: seat === p ? tw : withoutPackages(tw), keepShown: this.opts.keepShown });
+    const mk = (seat: PlayerId) => new HeuristicAgent({ lookahead: false, weights: pair[seat].opts.weights, fastTricks: true, trickWeights: seat === p ? tw : withoutPackages(tw) });
     return [mk(0), mk(1)];
   }
 
   private fastAgentsPlain(p: PlayerId): [Agent, Agent] {
-    const keepShown = this.opts.keepShown;
-    if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS, keepShown }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS, keepShown })];
+    if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS })];
     const own: EvalWeights = { ...FAST_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
     const rival = withoutPackages(FAST_WEIGHTS);
-    return [new HeuristicAgent({ lookahead: false, weights: p === 0 ? own : rival, keepShown }), new HeuristicAgent({ lookahead: false, weights: p === 1 ? own : rival, keepShown })];
+    return [new HeuristicAgent({ lookahead: false, weights: p === 0 ? own : rival }), new HeuristicAgent({ lookahead: false, weights: p === 1 ? own : rival })];
   }
 
   /** Package facts for seat p, or null when no package weight counts for this agent or p's list is built around none. */
@@ -454,8 +445,6 @@ export class HeuristicAgent implements Agent {
 
   async decide(g: Game, d: Decision): Promise<number[]> {
     this.lastScores = null;
-    // keepShown: the game records the cards both players know are in a hand (every bot is asked its mulligan first)
-    if (this.opts.keepShown) g.tracksShown = true;
     // explanations describe the latest main-phase action or reaction (sub-choices keep the move that caused them)
     if (d.kind === 'action' || d.kind === 'reaction') {
       this.lastThought = '';
@@ -866,9 +855,9 @@ export class HeuristicAgent implements Agent {
   /** One deep-reaction play-out: resume the attack with reaction r in world w, play p's turn, score it. */
   private async reactionWorld(g: Game, p: PlayerId, r: Reaction, w: World): Promise<number> {
     const attacker = g.s.attack!.attacker;
-    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b, fastTricks: this.opts.fastTricks, keepShown: this.opts.keepShown })));
+    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b, fastTricks: this.opts.fastTricks })));
     cg.s.rng = w.rng;
-    hideInfo(cg, p, this.opts.keepShown);
+    hideInfo(cg, p);
     await playOut(cg, p, { reaction: r, attacker });
     if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins: this.opts.rolloutWins, clamp: true });
     return playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
@@ -877,7 +866,7 @@ export class HeuristicAgent implements Agent {
   /** Clone, perform an action with fast policies, return evaluation (+ `leaf` of the clone, when given). */
   async simulate(g: Game, p: PlayerId, a: Action, leaf?: (cg: Game) => number): Promise<number> {
     const cg = g.clone(this.fastAgents(p));
-    hideInfo(cg, p, this.opts.keepShown);
+    hideInfo(cg, p);
     try {
       await cg.doAction(p, a);
       await cg.resolvePending();
@@ -904,7 +893,7 @@ export class HeuristicAgent implements Agent {
       {
         root: () => {
           const cg = g.clone(this.fastAgents(p));
-          hideInfo(cg, p, this.opts.keepShown);
+          hideInfo(cg, p);
           return cg;
         },
         child: (cg) => cg.clone(this.fastAgents(p)),
@@ -966,12 +955,12 @@ export class HeuristicAgent implements Agent {
       this.cloneAgents(p, (weights, seat) => {
         const noSellTurn = seat === p ? noSell : undefined;
         return world
-          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn, fastTricks: this.opts.fastTricks, keepShown: this.opts.keepShown })
-          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn, fastTricks: this.opts.fastTricks, keepShown: this.opts.keepShown });
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn, fastTricks: this.opts.fastTricks })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn, fastTricks: this.opts.fastTricks });
       }),
     );
     if (world) cg.s.rng = world.rng;
-    hideInfo(cg, p, this.opts.keepShown);
+    hideInfo(cg, p);
     await playOut(cg, p, a === null ? { rest: true } : { action: a });
     const wins = this.opts.rolloutWins;
     if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins, clamp: true });
@@ -1078,7 +1067,7 @@ export class HeuristicAgent implements Agent {
     const base = evaluate(g, p, w) - (P.hand.length <= w.handCap ? w.hand : 0);
     const modIds = new Set(g.s.mods.map((m) => m.id));
     const cg = g.clone(this.fastAgents(p));
-    hideInfo(cg, p, this.opts.keepShown);
+    hideInfo(cg, p);
     try {
       await cg.doAction(p, a);
       await cg.resolvePending();
@@ -1111,7 +1100,7 @@ export class HeuristicAgent implements Agent {
     };
     const resolve1 = async (r: Reaction | null) => {
       const cg = g.clone(this.fastAgents(p));
-      hideInfo(cg, p, this.opts.keepShown);
+      hideInfo(cg, p);
       try {
         if (r) {
           await cg.doReaction(p, r);
@@ -1205,7 +1194,7 @@ export class HeuristicAgent implements Agent {
     const w = this.opts.trickWeights ?? this.opts.weights;
     const resolve = async (r: Reaction) => {
       const cg = g.clone(this.fastAgents(p));
-      hideInfo(cg, p, this.opts.keepShown);
+      hideInfo(cg, p);
       try {
         if (r.type !== 'endReact') {
           await cg.doReaction(p, r);
@@ -1802,18 +1791,17 @@ async function pickReaction(g: Game, rx: Reaction[], endIdx: number, baseV: numb
  * of face-down Legends are permuted among the slots the viewer can't tell apart (own face-down Legends not looked at,
  * every rival face-down Legend). The viewer's own hand and every public zone are untouched.
  *
- * keepShown (REVIEW_2026-11-25 C5): the cards both players know are in the rival's hand (`PlayerState.shown`: revealed
- * into it, or taken into it from a public zone) stay where they are, and only the other cards are re-dealt, into the
- * same places in the hand. With none (or keepShown false) every random number is drawn as before, so the deal is the
- * same as before.
+ * Since SIM_VERSION 13 (REVIEW_2026-11-25 C5) the cards both players know are in the rival's hand (`PlayerState.shown`:
+ * revealed into it, or taken into it from a public zone) stay where they are, and only the other cards are re-dealt,
+ * into the same places in the hand. With none known every random number is drawn as before, so the deal is the same.
  */
-export function hideInfo(g: Game, viewer: PlayerId, keepShown = false) {
+export function hideInfo(g: Game, viewer: PlayerId) {
   // deck order is unknown to everyone
   for (const pl of [0, 1] as PlayerId[]) shuffleInPlace(g.s, g.P(pl).deck);
   // the rival's hand is unknown, but for the cards both know: re-deal the rest from the rival's unseen cards (hand + deck)
   const r = other(viewer);
   const R = g.P(r);
-  const shown = keepShown && R.shown ? R.shown : null;
+  const shown = R.shown ?? null;
   const kept = shown ? R.hand.filter((u) => shown.includes(u)) : [];
   const hand = R.hand;
   const unseen = kept.length ? hand.filter((u) => !kept.includes(u)) : hand;

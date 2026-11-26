@@ -108,7 +108,7 @@ export function move(game: Game, uid: number, to: Zone, opts: MoveOptions = {}) 
     else list.push(uid);
   } else list.push(uid);
   // both players know this card is in the hand when it came from a public zone or was revealed (REVIEW_2026-11-25 C5)
-  if (dest === 'hand' && game.tracksShown && (from !== 'deck' || opts.revealed)) (game.P(owner).shown ??= []).push(uid);
+  if (dest === 'hand' && (from !== 'deck' || opts.revealed)) (game.P(owner).shown ??= []).push(uid);
   // Gear follows its Unit or Legend to the area it was sent to, unequipped (4.12, 4.12.1). A Legend sent to the trash
   // is removed from the game but its Gear stays in the trash (4.12.2); a Unit removed from the game takes its Gear along.
   for (const gu of gear) {
