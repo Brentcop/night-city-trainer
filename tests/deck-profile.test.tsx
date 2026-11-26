@@ -126,12 +126,16 @@ describe('deck profile: recorded results first', () => {
     // its Swiss tile only while the ratings' pool holds a recorded event of the current simulator version (see above)
     if (RATINGS.decks.find((r) => r.name === d.deck.name)?.gamesRecord) expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
     else expect(html).toContain('Power rank');
-    // it was never in a season: its record is historical only when its ratings or the recorded events it finished in are
-    // from an older simulator (the ratings were version 9's from SIM_VERSION 10 until the re-rating of 2026-11-25; its
-    // event finishes, events 20 to 24, are version 9's until an event is recorded on the current version)
+    // it was never in a season: its record is historical only when its ratings are from an older simulator (version 9's
+    // from SIM_VERSION 10 until the re-rating of 2026-11-25). Its event finishes (events 20 to 24, version 9's until an
+    // event is recorded on the current version) say their own age where they are listed, and never mark the record.
     const finished = TOURNAMENT_INDEX.events.filter((e) => eventFinishes(d.deck.name, [e]).length > 0);
     expect(finished.length).toBeGreaterThan(0);
-    expect(html.includes('Historical:')).toBe(isHistorical(RATINGS.manifest?.simVersion) || finished.some((e) => isHistorical(e.simVersion)));
+    expect(html.includes('Historical:')).toBe(isHistorical(RATINGS.manifest?.simVersion));
+    expect(html.includes('marks an event recorded before the current simulator')).toBe(finished.some((e) => isHistorical(e.simVersion)));
+    // no "tournament games in 0 events" or "top 8 in 0 of 0 events" when the ratings' pool holds rating runs alone
+    expect(html).not.toMatch(/in 0 events|of 0 events/);
+    expect(html).toMatch(/games in the power rating, from /);
     expect(html).toContain('origin-badge origin-shared');
     expect(html).toContain('Player list');
     expect(html).not.toContain('choom.gg guide');

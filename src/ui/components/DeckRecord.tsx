@@ -14,7 +14,7 @@ import { ANALYSIS_SUMMARY, telemetrySummary } from '../../data/analysisData';
 import { deckReports, reportsSimVersion } from '../../data/deckReportsData';
 import { deckStats, pct, statsName } from '../../lib/deckStats';
 import type { LibraryDeck } from '../../lib/library';
-import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type DeckRecord, type H2HFile, type MatchLine } from '../../lib/deckRecord';
+import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, isHistorical, ordinal, ratedGamesWords, type DeckRecord, type H2HFile, type MatchLine } from '../../lib/deckRecord';
 import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 import { RecordedAt, formatRecorded } from './RecordedAt';
@@ -47,7 +47,7 @@ function loadEventH2H(): Promise<H2HFile | null> {
 }
 
 /** The record for a library deck from every bundled source (tournament head-to-heads passed in once loaded). */
-function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]): DeckRecord {
+function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[], h2hVersion?: number | null): DeckRecord {
   const st = deckStats(d.file);
   const rep = deckReports(d.file);
   return deckRecord({
@@ -59,7 +59,7 @@ function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]
     eventH2H,
     telemetry: telemetrySummary(statsName(d.file)),
     leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile, seasons: st.leader.seasons },
-    versions: { ...VERSIONS, reports: reportsSimVersion(rep) },
+    versions: { ...VERSIONS, reports: reportsSimVersion(rep), ...(eventH2H ? { h2h: h2hVersion ?? null } : {}) },
     simVersion: CURRENT_SIM_VERSION,
     isDeck: isBuiltinName,
   });
@@ -76,6 +76,8 @@ const recordedNote = (iso: string) => {
   return at ? ` (recorded ${at})` : '';
 };
 const small = (n: number | null) => (n !== null && n < SMALL_SAMPLE ? ' (small sample)' : '');
+const RATED_RUNS = RATINGS.runs ?? 0;
+const OLD_EVENT = new Set(EVENTS.filter((e) => isHistorical(e.simVersion)).map((e) => e.id));
 
 function Tile({ label, value, children }: { label: string; value: React.ReactNode; children?: React.ReactNode }) {
   return (
@@ -120,7 +122,7 @@ function MatchValue({ m }: { m: MatchLine }) {
 const MATCHUP_SOURCE: Record<NonNullable<DeckRecord['matchups']>['source'], string> = {
   finals: 'vs the choom.gg meta archetypes (finals)',
   h2h: 'from dedicated head-to-head runs',
-  events: `from tournament games (pairings with at least 6 games)`,
+  events: `from the power rating's games (pairings with at least 6 games)`,
 };
 
 /**
@@ -150,8 +152,10 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
     };
   }, [needH2H, h2h]);
   const eventH2H = useMemo<MatchLine[] | undefined>(() => (needH2H && h2h !== undefined ? h2hFor(rd.deck.name, h2h) : undefined), [needH2H, h2h, rd.deck.name]);
-  const rec = eventH2H ? recordFor(rd, eventH2H) : base;
+  const rec = eventH2H ? recordFor(rd, eventH2H, h2h?.manifest?.simVersion) : base;
   const t = rec.tournament;
+  // the ratings' pool holds events of its own (else its games are the rating runs', and the finishes come from older events)
+  const rated = !!t && t.events > 0;
   const sim = simTierOf(d);
   const ys = yourStatsFor(useYourStats(), listOf(d.deck));
   // a provisional rating only for a list with no recorded rating
@@ -187,7 +191,7 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
           <div className="rec-tiles">
             {t && (
               <Tile label="Games played" value={t.games.toLocaleString()}>
-                tournament games in {t.events} event{t.events === 1 ? '' : 's'}
+                {ratedGamesWords(t.events, RATED_RUNS)}
                 {t.won + t.lost > 0 && (
                   <>
                     {' '}
@@ -257,9 +261,11 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
                 <a href="#/ratings">how tiers work</a>
               </Tile>
             )}
-            {(t || rec.finishes.length > 0) && (
-              <Tile label="Event finishes" value={t && t.titles > 0 ? `${t.titles} title${t.titles === 1 ? '' : 's'}` : rec.finishes.length ? `Best ${ordinal(Math.min(...rec.finishes.map((f) => f.place)))}` : '—'}>
-                {t ? `top 8 in ${t.top8} of ${t.events} events · matches ${t.matches}` : `${rec.finishes.length} event${rec.finishes.length === 1 ? '' : 's'}`}
+            {(rated || rec.finishes.length > 0) && (
+              <Tile label="Event finishes" value={rated && t.titles > 0 ? `${t.titles} title${t.titles === 1 ? '' : 's'}` : rec.finishes.length ? `Best ${ordinal(Math.min(...rec.finishes.map((f) => f.place)))}` : '—'}>
+                {rated
+                  ? `top 8 in ${t.top8} of ${t.events} events · matches ${t.matches}`
+                  : `${rec.finishes.length} event${rec.finishes.length === 1 ? '' : 's'}${rec.finishesHistorical ? `, recorded before the current simulator (v${CURRENT_SIM_VERSION})` : ''}`}
               </Tile>
             )}
           </div>
@@ -283,6 +289,12 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
           {rec.finishes.length > 0 && (
             <div className="rec-finishes">
               <span className="rec-k">Finishes, newest first</span>
+              {rec.finishesHistorical && (
+                <span className="muted small">
+                  {' '}
+                  <span aria-hidden="true">⏱</span> marks an event recorded before the current simulator (v{CURRENT_SIM_VERSION})
+                </span>
+              )}
               <ul>
                 {rec.finishes.map((f) => (
                   <li key={f.id}>
@@ -294,6 +306,15 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
                       <span className="muted">#{f.id}</span> {f.champion ? '🏆 won' : ordinal(f.place)}
                       {f.top8 && !f.champion && <span className="sr-only">, top 8</span>}
                       <RecordedAt iso={f.date} compact className="muted" prefix=" · " />
+                      {OLD_EVENT.has(f.id) && (
+                        <>
+                          <span className="muted" aria-hidden="true">
+                            {' '}
+                            ⏱
+                          </span>
+                          <span className="sr-only">, recorded before the current simulator</span>
+                        </>
+                      )}
                     </a>
                   </li>
                 ))}

@@ -11,6 +11,7 @@ import {
   isHistorical,
   ordinal,
   parseWL,
+  ratedGamesWords,
   ratingsHistorical,
   seatTotals,
   tileRecord,
@@ -94,6 +95,35 @@ describe('deck record', () => {
 
   it('sums seats from matchup rows', () => {
     expect(seatTotals([{ opp: 'X', g: 4, w: 0.5, fw: 1, fg: 2, sw: 1, sg: 2 }, { opp: 'Y', g: 2, w: 1, fw: 1, fg: 1, sw: 1, sg: 1 }])).toEqual({ fw: 2, fg: 3, sw: 2, sg: 3 });
+  });
+
+  it('says the age of older event finishes apart, never marking a current record historical for them', () => {
+    // a current ratings row whose pool holds rating runs alone (events 0), and a finish in an event of an older simulator
+    const r = deckRecord({
+      name: 'A',
+      ratings: { decks: [row('A', { games: 300, events: 0, titles: 0, top8: 0, gamesRecord: '' })], manifest: { simVersion: CURRENT_SIM_VERSION } },
+      events: [ev(1, ['A', 'B'], 'A', CURRENT_SIM_VERSION - 1)],
+    });
+    expect(r.tournament).toMatchObject({ games: 300, events: 0, wr: null });
+    expect(r.finishes).toHaveLength(1);
+    expect(r.finishesHistorical).toBe(true);
+    expect(r.historical).toBe(false);
+    // a finish in a current event is not old
+    const now = deckRecord({ name: 'A', events: [ev(1, ['A', 'B'], 'A', CURRENT_SIM_VERSION)] });
+    expect(now.finishesHistorical).toBe(false);
+    expect(now.historical).toBe(false);
+    // matchups from the head-to-head file are judged by its own pool's version when it is known, else by the events
+    const lines = [{ opp: 'B', g: 9, w: 0.7 }, { opp: 'C', g: 8, w: 0.25 }];
+    const old = [ev(1, ['A', 'B'], 'A', CURRENT_SIM_VERSION - 1)];
+    expect(deckRecord({ name: 'A', events: old, eventH2H: lines, versions: { h2h: CURRENT_SIM_VERSION } })).toMatchObject({ historical: false, finishesHistorical: true, matchups: { source: 'events' } });
+    expect(deckRecord({ name: 'A', events: old, eventH2H: lines, versions: { h2h: CURRENT_SIM_VERSION - 1 } }).historical).toBe(true);
+    expect(deckRecord({ name: 'A', events: old, eventH2H: lines, versions: { h2h: null } }).historical).toBe(true);
+    expect(deckRecord({ name: 'A', events: old, eventH2H: lines }).historical).toBe(true);
+    // where the rated games came from (the deck page's "Games played" tile)
+    expect(ratedGamesWords(0, 4)).toBe('games in the power rating, from the rating runs');
+    expect(ratedGamesWords(1, 0)).toBe('games in the power rating, from 1 event');
+    expect(ratedGamesWords(5, 4)).toBe('games in the power rating, from 5 events and the rating runs');
+    expect(ratedGamesWords(0, 0)).toBe('games in the power rating');
   });
 
   it('a deck with nothing recorded has no record', () => {

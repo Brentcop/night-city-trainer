@@ -40,6 +40,8 @@ export interface H2HFile {
   pairs: [number, number, number, number][];
   /** the shrunk estimate of i beating j per entry of `pairs` (src/lib/h2hModel.ts; absent in older files) */
   shrunk?: number[];
+  /** the pool's simulator version (absent in older files) */
+  manifest?: { simVersion?: number | null };
 }
 
 export interface RecordSources {
@@ -63,7 +65,7 @@ export interface RecordSources {
    * simulator version of each non-event source, from its manifest; missing means it predates versioning (historical).
    * `seasons` is each recorded season's own version (seasonVersions in src/lib/parentStrength.ts; null: none recorded).
    */
-  versions?: { reports?: number; telemetry?: number; seasons?: Readonly<Record<string, number | null>> };
+  versions?: { reports?: number; telemetry?: number; seasons?: Readonly<Record<string, number | null>>; h2h?: number | null };
   simVersion?: number;
   /** whether a name is a library deck's: lets a finish of the deck's second entry ("X #2") count (eventFinishes) */
   isDeck?: (name: string) => boolean;
@@ -102,8 +104,15 @@ export interface DeckRecord {
   vsMeta?: { wr: number; n: number; source: 'finals' | 'seasons' };
   matchups?: { best: MatchLine; worst: MatchLine | null; count: number; source: 'finals' | 'h2h' | 'events' };
   leader?: RecordSources['leader'];
-  /** some of the numbers were recorded before the current simulator (or carry no version, which means the same) */
+  /**
+   * some of the numbers were recorded before the current simulator (or carry no version, which means the same). Event
+   * finishes are not among them: their age is `finishesHistorical`, said where the finishes are shown, so a deck whose
+   * ratings are current is not marked historical for finishes in older events (2026-11-25, the first bump that kept
+   * its events listed).
+   */
   historical: boolean;
+  /** some event finish is from an event recorded before the current simulator (or with no version) */
+  finishesHistorical: boolean;
 }
 
 const ok = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -169,6 +178,15 @@ export function seatTotals(rows: MatchLine[]) {
   return t;
 }
 
+/**
+ * Where the power rating's games came from: the deck's events in its pool and the rating runs (docs/SERIES.md). After a
+ * simulator change the pool can hold rating runs alone, until an event is recorded on the new version.
+ */
+export function ratedGamesWords(events: number, runs: number): string {
+  const from = [events > 0 ? `${events} event${events === 1 ? '' : 's'}` : '', runs > 0 ? 'the rating runs' : ''].filter(Boolean);
+  return from.length ? `games in the power rating, from ${from.join(' and ')}` : 'games in the power rating';
+}
+
 /** Minimum games for a tournament head-to-head to count as a best or worst matchup. */
 const EVENT_H2H_MIN = 6;
 
@@ -179,7 +197,7 @@ export function deckRecord(src: RecordSources): DeckRecord {
   const rows = src.ratings?.decks ?? [];
   const ri = rows.findIndex((r) => r.name === src.name);
   const row = ri >= 0 ? rows[ri] : undefined;
-  const rec: DeckRecord = { hasAny: false, finishes: eventFinishes(src.name, events, src.isDeck), historical: false };
+  const rec: DeckRecord = { hasAny: false, finishes: eventFinishes(src.name, events, src.isDeck), historical: false, finishesHistorical: false };
   const used: boolean[] = []; // historical flag of every source that contributed
 
   if (row && row.games > 0) {
@@ -200,7 +218,7 @@ export function deckRecord(src: RecordSources): DeckRecord {
     };
     used.push(ratingsHistorical(src.ratings, events, current));
   }
-  if (rec.finishes.length) used.push(events.filter((e) => rec.finishes.some((f) => f.id === e.id)).some((e) => isHistorical(e.simVersion, current)));
+  if (rec.finishes.length) rec.finishesHistorical = events.filter((e) => rec.finishes.some((f) => f.id === e.id)).some((e) => isHistorical(e.simVersion, current));
 
   const finals = src.finals && src.finals.rows.length ? src.finals : undefined;
   if (finals) {
@@ -237,7 +255,8 @@ export function deckRecord(src: RecordSources): DeckRecord {
     used.push(isHistorical(v.reports, current));
   } else if (fromEvents) {
     rec.matchups = { ...fromEvents, source: 'events' };
-    used.push(ratingsHistorical(undefined, events, current));
+    // the head-to-head file's own pool (rating runs as well as events) when its version is known, else the events
+    used.push(v.h2h !== undefined ? isHistorical(v.h2h, current) : ratingsHistorical(undefined, events, current));
   }
 
   rec.hasAny = !!(rec.tournament || rec.finishes.length || rec.seats || rec.vsMeta || rec.matchups || rec.leader);
