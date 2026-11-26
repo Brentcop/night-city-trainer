@@ -5,7 +5,7 @@ ROADMAP2 §13 goal 5, last bullet: "the expected field, each deck's chance to ma
 - Engine: `src/lib/forecast.ts` (pure, seeded; no engine, bot or sim code). Field input: `src/lib/forecastField.ts`. Sentences: `src/lib/forecastWords.ts`.
 - Page: `#/forecast`, Tournaments → Regionals forecast (`src/ui/pages/Forecast.tsx`, lazy), behind the feature `forecast`, **on by default since 2026-11-18** at the owner's word (untick it in `#/admin` to hide the page; docs/SITE_CONFIG.md).
 - Command line: `npx tsx scripts/forecast.ts [--players 128] [--rounds N] [--best-of 3] [--top 8] [--field uniform|outside[:id]|FILE] [--trials 300] [--draws 100] [--seed 1] [--json]`. It writes nothing.
-- Backtest: `npx tsx scripts/forecast-backtest.ts [--out FILE]`; the current run is `reports/forecast-backtest-2026-11-24.md` (the first, of 2026-11-18, is `reports/forecast-backtest-2026-11-18.md`).
+- Backtest: `npx tsx scripts/forecast-backtest.ts [--out FILE]`; the current run is `reports/forecast-backtest-2026-11-26-v13.md` (SIM_VERSION 13, events 26 to 30); on version 9, `reports/forecast-backtest-2026-11-24-fitted-prior.md` and `reports/forecast-backtest-2026-11-24.md` (events 20 to 24), and the first, of 2026-11-18, `reports/forecast-backtest-2026-11-18.md`.
 - Simulator version: when `h2h.json`'s manifest names another simulator version than the current one (or none), the page says so above the form and beside the ratings, and the command line prints a warning (`forecastVersionNote` in `src/lib/forecastWords.ts`); with the versions equal nothing is added.
 - Tests: `tests/forecast.test.ts` (the Swiss port, the match maths, the model, the limits), `tests/forecast-field.test.ts`, `tests/forecast-ui.test.tsx`.
 
@@ -46,7 +46,19 @@ Always an input, never a hidden assumption; the page and the command line name i
 
 For each deck, the opponents whose share of the field moves its conversion most, worst first, each with the deck's chance to win a match against it and that chance's 90% range. The figure is a first-order estimate, not a re-run: +5 points of an opponent's share adds meetings with it in proportion to how often the deck meets it in the Swiss rounds (measured in the simulation, so strong decks meeting strong decks at the top tables counts), each extra meeting replaces one with the deck's average other opponent, and a match win is worth what the simulation says one more match win is worth for making the cut. With today's ratings, where pairings follow the ratings (point 1 above), the opponents that decide a strong deck's cut are simply the other strong decks it meets at the top tables; a real counter-matchup shows only as far as a pair's own record (about 6 games against a prior worth 127) moves it, which is little.
 
-## Backtest (2026-11-24)
+## Backtest on SIM_VERSION 13 (2026-11-26)
+
+The same backtest with the same settings (100 parameter draws × 300 tournaments an event, seed 1 + the event id) on the version-13 pool: events 26 to 30 (all 71 decks, Swiss 9 rounds best of three, top 8, Hard) held out in turn, each fitted on the other four events and rating runs 5 to 9, about 34,200 games a fold (version 9's folds had about 13,270). Full tables: `reports/forecast-backtest-2026-11-26-v13.md`; 42 s.
+
+- Brier score **0.0826** over 355 deck-events against 0.1000: a skill score of 17.4%, 90% interval of the difference 0.009 to 0.027 in the forecast's favour (version 9: 0.0821, 17.9%, 0.006 to 0.031). Every event beat the baseline, from 0.077 (event 28) to 0.091 (event 26); on version 9 event 24 did not (0.106).
+- **Calibration is close in the middle now.** Deck-events forecast at 2% to 10% made the cut 6 times against 6.9 expected, 10% to 35% 22 against 19.3, 35% to 50% 10 against 10.6 (−0.3, +0.7 and −0.2 binomial standard deviations). On version 9 (the fitted-prior run) the same bands read 12 against 6.4, 12 against 20.8 and 13 against 8.9 (+2.3, −2.2, +1.8). Why it changed is not measured: the simulator, the events and the pool all differ (the fitted prior sd and the corrected pair spread were already in the version-9 run), and a deck's five events are not independent.
+- The forecast's own top 8 held 16 of the 40 real top-8 places (version 9: 19; an equal chance gives about 4.5).
+- **Earlier games only** now scores every event, because rating runs 5 to 8 (29,590 games) are dated before event 26: Brier 0.0832, skill 16.7% (interval 0.009 to 0.026), fitted on 29,590 to 34,230 games. The two tests barely differ here, since an event adds about 800 games to a pool of 30,000.
+- Drawing the ratings instead of fixing them changes nothing measurable (0.0826 against 0.0825).
+- The skill score did not rise with two and a half times the games a fold. Most of what is left looks like the luck of a 9-round Swiss and its top cut, which no amount of rating precision removes; that is a reading, not a measurement.
+- What it shows and does not show is unchanged from below: our own simulated events, same lists, same bot, same simulator; nothing about people. Nothing was tuned on it.
+
+## Backtest on SIM_VERSION 9 (2026-11-24)
 
 Each plain Swiss event of the pool (events 20 to 24) was held out in turn and forecast from ratings and head-to-heads fitted on the games the page's model reads (the pool of `h2h.json`: the recorded events and rating runs of the current simulator version and bot, games on the library's current lists), less the held-out event's own games, on its own field (71 entrants, each once) and format (Swiss 9 rounds, best of 3, top 8); the predicted chance of each deck to make the top 8 was compared with whether it did. Event 25 (a round robin) and rating run 1 are not held out (no cut to predict) but their games predict the others. Full tables: `reports/forecast-backtest-2026-11-24.md`.
 
