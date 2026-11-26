@@ -154,8 +154,8 @@ describe('the published file and the Play page', () => {
     expect(f).not.toBeNull();
     expect(f.catalogueVersion).toBe(CATALOGUE_VERSION);
     expect(f.rows.length).toBeGreaterThan(100);
-    // one simulator version for the whole file: measured 2026-11-24 on version 9, so since SIM_VERSION 10 (2026-11-25)
-    // the coach reads none of its rows (a row of another version is never used) until the file is measured again
+    // one simulator version for the whole file: measured 2026-11-24 on version 9 and again on 2026-11-25 on version 13;
+    // after a bump the coach reads none of its rows (a row of another version is never used) until it is measured again
     const v = f.rows[0]!.simVersion;
     expect(f.rows.every((r) => r.bot && r.simVersion === v)).toBe(true);
     expect(v).toBeLessThanOrEqual(SIM_VERSION);

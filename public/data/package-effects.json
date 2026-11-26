@@ -27,7 +27,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -39,13 +39,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.025,
-   "se": 0.017397,
-   "sd": 0.582206,
+   "mean": 0.032143,
+   "se": 0.017155,
+   "sd": 0.574124,
    "family": 1,
-   "low": -0.009097,
-   "high": 0.059097,
-   "date": "2026-11-24"
+   "low": -0.001481,
+   "high": 0.065766,
+   "date": "2026-11-26"
   },
   {
    "listId": "06eed193385abd58",
@@ -67,7 +67,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -79,13 +79,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.191964,
-   "se": 0.017176,
-   "sd": 0.574812,
+   "mean": 0.180357,
+   "se": 0.017218,
+   "sd": 0.576241,
    "family": 2,
-   "low": 0.153466,
-   "high": 0.230462,
-   "date": "2026-11-24"
+   "low": 0.141764,
+   "high": 0.218951,
+   "date": "2026-11-26"
   },
   {
    "listId": "06eed193385abd58",
@@ -109,7 +109,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -121,13 +121,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.019643,
-   "se": 0.015042,
-   "sd": 0.5034,
+   "mean": -0.021429,
+   "se": 0.015407,
+   "sd": 0.515606,
    "family": 2,
-   "low": -0.053358,
-   "high": 0.014072,
-   "date": "2026-11-24"
+   "low": -0.055961,
+   "high": 0.013104,
+   "date": "2026-11-26"
   },
   {
    "listId": "078ce02dba6dd2c0",
@@ -151,7 +151,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -163,13 +163,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.091964,
-   "se": 0.01877,
-   "sd": 0.628151,
+   "mean": 0.101786,
+   "se": 0.018873,
+   "sd": 0.631605,
    "family": 4,
-   "low": 0.045083,
-   "high": 0.138845,
-   "date": "2026-11-24"
+   "low": 0.054647,
+   "high": 0.148924,
+   "date": "2026-11-26"
   },
   {
    "listId": "078ce02dba6dd2c0",
@@ -189,7 +189,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -201,13 +201,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.071429,
-   "se": 0.016478,
-   "sd": 0.551451,
+   "mean": 0.083929,
+   "se": 0.016809,
+   "sd": 0.562541,
    "family": 4,
-   "low": 0.030272,
-   "high": 0.112585,
-   "date": "2026-11-24"
+   "low": 0.041944,
+   "high": 0.125913,
+   "date": "2026-11-26"
   },
   {
    "listId": "078ce02dba6dd2c0",
@@ -223,7 +223,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -235,13 +235,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.044643,
-   "se": 0.017084,
-   "sd": 0.571726,
+   "mean": 0.077679,
+   "se": 0.017048,
+   "sd": 0.570532,
    "family": 4,
-   "low": 0.001973,
-   "high": 0.087313,
-   "date": "2026-11-24"
+   "low": 0.035098,
+   "high": 0.120259,
+   "date": "2026-11-26"
   },
   {
    "listId": "078ce02dba6dd2c0",
@@ -265,7 +265,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -277,13 +277,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.007143,
-   "se": 0.016372,
-   "sd": 0.547921,
+   "mean": 0.016964,
+   "se": 0.016632,
+   "sd": 0.556606,
    "family": 4,
-   "low": -0.03375,
-   "high": 0.048036,
-   "date": "2026-11-24"
+   "low": -0.024577,
+   "high": 0.058506,
+   "date": "2026-11-26"
   },
   {
    "listId": "080a9497aa8697ce",
@@ -305,7 +305,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -317,13 +317,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.019643,
-   "se": 0.012363,
-   "sd": 0.413758,
+   "mean": 0.000893,
+   "se": 0.012537,
+   "sd": 0.419582,
    "family": 4,
-   "low": -0.011237,
-   "high": 0.050523,
-   "date": "2026-11-24"
+   "low": -0.030422,
+   "high": 0.032208,
+   "date": "2026-11-26"
   },
   {
    "listId": "080a9497aa8697ce",
@@ -339,7 +339,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -351,13 +351,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.014286,
-   "se": 0.009011,
-   "sd": 0.301577,
+   "mean": 0.004464,
+   "se": 0.009325,
+   "sd": 0.312071,
    "family": 4,
-   "low": -0.008222,
-   "high": 0.036793,
-   "date": "2026-11-24"
+   "low": -0.018827,
+   "high": 0.027755,
+   "date": "2026-11-26"
   },
   {
    "listId": "080a9497aa8697ce",
@@ -377,7 +377,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -389,13 +389,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.05625,
-   "se": 0.015663,
-   "sd": 0.524175,
+   "mean": 0.045536,
+   "se": 0.016046,
+   "sd": 0.536994,
    "family": 4,
-   "low": 0.017129,
-   "high": 0.095371,
-   "date": "2026-11-24"
+   "low": 0.005458,
+   "high": 0.085613,
+   "date": "2026-11-26"
   },
   {
    "listId": "080a9497aa8697ce",
@@ -413,7 +413,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -425,13 +425,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.18125,
-   "se": 0.017047,
-   "sd": 0.570504,
+   "mean": 0.175893,
+   "se": 0.017375,
+   "sd": 0.581475,
    "family": 4,
-   "low": 0.138671,
-   "high": 0.223829,
-   "date": "2026-11-24"
+   "low": 0.132495,
+   "high": 0.21929,
+   "date": "2026-11-26"
   },
   {
    "listId": "0b6272134a22585c",
@@ -453,7 +453,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -465,13 +465,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.195536,
-   "se": 0.017463,
-   "sd": 0.58441,
+   "mean": 0.18125,
+   "se": 0.017372,
+   "sd": 0.581366,
    "family": 2,
-   "low": 0.156395,
-   "high": 0.234676,
-   "date": "2026-11-24"
+   "low": 0.142313,
+   "high": 0.220187,
+   "date": "2026-11-26"
   },
   {
    "listId": "0b6272134a22585c",
@@ -487,7 +487,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -499,13 +499,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.01875,
-   "se": 0.018665,
-   "sd": 0.62464,
+   "mean": 0.008929,
+   "se": 0.018129,
+   "sd": 0.606717,
    "family": 2,
-   "low": -0.023085,
-   "high": 0.060585,
-   "date": "2026-11-24"
+   "low": -0.031706,
+   "high": 0.049563,
+   "date": "2026-11-26"
   },
   {
    "listId": "0b75f6c9c57007f3",
@@ -531,7 +531,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -543,13 +543,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.010714,
-   "se": 0.017456,
-   "sd": 0.584176,
+   "mean": -0.015179,
+   "se": 0.017747,
+   "sd": 0.593939,
    "family": 2,
-   "low": -0.049839,
-   "high": 0.028411,
-   "date": "2026-11-24"
+   "low": -0.054957,
+   "high": 0.0246,
+   "date": "2026-11-26"
   },
   {
    "listId": "0b75f6c9c57007f3",
@@ -579,7 +579,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -591,13 +591,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.075893,
-   "se": 0.017195,
-   "sd": 0.57545,
+   "mean": 0.075,
+   "se": 0.017588,
+   "sd": 0.588617,
    "family": 2,
-   "low": 0.037352,
-   "high": 0.114433,
-   "date": "2026-11-24"
+   "low": 0.035578,
+   "high": 0.114422,
+   "date": "2026-11-26"
   },
   {
    "listId": "16141b3be2bf22c2",
@@ -615,7 +615,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -627,13 +627,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.066964,
-   "se": 0.018131,
-   "sd": 0.606767,
+   "mean": 0.077679,
+   "se": 0.018442,
+   "sd": 0.617182,
    "family": 2,
-   "low": 0.026326,
-   "high": 0.107602,
-   "date": "2026-11-24"
+   "low": 0.036343,
+   "high": 0.119014,
+   "date": "2026-11-26"
   },
   {
    "listId": "16141b3be2bf22c2",
@@ -663,7 +663,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -675,13 +675,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.103571,
-   "se": 0.018949,
-   "sd": 0.634139,
+   "mean": 0.1,
+   "se": 0.018583,
+   "sd": 0.621911,
    "family": 2,
-   "low": 0.0611,
-   "high": 0.146043,
-   "date": "2026-11-24"
+   "low": 0.058348,
+   "high": 0.141652,
+   "date": "2026-11-26"
   },
   {
    "listId": "17a9e81ff46eba40",
@@ -711,7 +711,7 @@
     "royce_don_t_call_me_simon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -723,13 +723,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.233036,
-   "se": 0.01628,
-   "sd": 0.544841,
+   "mean": 0.225893,
+   "se": 0.016945,
+   "sd": 0.567081,
    "family": 2,
-   "low": 0.196545,
-   "high": 0.269526,
-   "date": "2026-11-24"
+   "low": 0.187913,
+   "high": 0.263873,
+   "date": "2026-11-26"
   },
   {
    "listId": "17a9e81ff46eba40",
@@ -747,7 +747,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -759,13 +759,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.076786,
-   "se": 0.014387,
-   "sd": 0.481467,
+   "mean": 0.082143,
+   "se": 0.014416,
+   "sd": 0.482438,
    "family": 2,
-   "low": 0.04454,
-   "high": 0.109032,
-   "date": "2026-11-24"
+   "low": 0.049832,
+   "high": 0.114454,
+   "date": "2026-11-26"
   },
   {
    "listId": "189f8a3b59f1117f",
@@ -787,7 +787,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -799,13 +799,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.025893,
-   "se": 0.016428,
-   "sd": 0.549798,
+   "mean": 0.042857,
+   "se": 0.017088,
+   "sd": 0.571862,
    "family": 2,
-   "low": -0.01093,
-   "high": 0.062715,
-   "date": "2026-11-24"
+   "low": 0.004557,
+   "high": 0.081157,
+   "date": "2026-11-26"
   },
   {
    "listId": "189f8a3b59f1117f",
@@ -833,7 +833,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -845,13 +845,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.141071,
-   "se": 0.015099,
-   "sd": 0.505299,
+   "mean": 0.157143,
+   "se": 0.015685,
+   "sd": 0.524931,
    "family": 2,
-   "low": 0.107229,
-   "high": 0.174914,
-   "date": "2026-11-24"
+   "low": 0.121986,
+   "high": 0.1923,
+   "date": "2026-11-26"
   },
   {
    "listId": "1abcf0f14da08881",
@@ -873,7 +873,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -885,13 +885,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.10625,
-   "se": 0.015325,
-   "sd": 0.512887,
+   "mean": 0.091964,
+   "se": 0.015665,
+   "sd": 0.524236,
    "family": 3,
-   "low": 0.069561,
-   "high": 0.142939,
-   "date": "2026-11-24"
+   "low": 0.054464,
+   "high": 0.129465,
+   "date": "2026-11-26"
   },
   {
    "listId": "1abcf0f14da08881",
@@ -917,7 +917,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -929,13 +929,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.141964,
-   "se": 0.015012,
-   "sd": 0.502387,
+   "mean": 0.150893,
+   "se": 0.015303,
+   "sd": 0.51214,
    "family": 3,
-   "low": 0.106027,
-   "high": 0.177902,
-   "date": "2026-11-24"
+   "low": 0.114258,
+   "high": 0.187528,
+   "date": "2026-11-26"
   },
   {
    "listId": "1abcf0f14da08881",
@@ -957,7 +957,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -969,13 +969,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.085714,
-   "se": 0.014341,
-   "sd": 0.479957,
+   "mean": 0.08125,
+   "se": 0.014667,
+   "sd": 0.490851,
    "family": 3,
-   "low": 0.051381,
-   "high": 0.120047,
-   "date": "2026-11-24"
+   "low": 0.046138,
+   "high": 0.116362,
+   "date": "2026-11-26"
   },
   {
    "listId": "1f877a91f82bb1bb",
@@ -993,7 +993,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1005,13 +1005,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.11875,
-   "se": 0.017349,
-   "sd": 0.580596,
+   "mean": 0.094643,
+   "se": 0.017088,
+   "sd": 0.571882,
    "family": 1,
-   "low": 0.084747,
-   "high": 0.152753,
-   "date": "2026-11-24"
+   "low": 0.061151,
+   "high": 0.128135,
+   "date": "2026-11-26"
   },
   {
    "listId": "207834998dd33f94",
@@ -1041,7 +1041,7 @@
     "panam_palmer_strength_through_family"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1053,13 +1053,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.151786,
-   "se": 0.016476,
-   "sd": 0.551379,
+   "mean": 0.163393,
+   "se": 0.016449,
+   "sd": 0.550489,
    "family": 2,
-   "low": 0.114857,
-   "high": 0.188714,
-   "date": "2026-11-24"
+   "low": 0.126524,
+   "high": 0.200262,
+   "date": "2026-11-26"
   },
   {
    "listId": "207834998dd33f94",
@@ -1081,7 +1081,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1093,13 +1093,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.03125,
-   "se": 0.017638,
-   "sd": 0.590289,
+   "mean": 0.038393,
+   "se": 0.017716,
+   "sd": 0.59289,
    "family": 2,
-   "low": -0.008284,
-   "high": 0.070784,
-   "date": "2026-11-24"
+   "low": -0.001316,
+   "high": 0.078101,
+   "date": "2026-11-26"
   },
   {
    "listId": "258f3aa5a1a4fb51",
@@ -1119,7 +1119,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1131,13 +1131,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.021429,
-   "se": 0.017538,
-   "sd": 0.586934,
+   "mean": 0.03125,
+   "se": 0.017411,
+   "sd": 0.582671,
    "family": 1,
-   "low": -0.012945,
-   "high": 0.055802,
-   "date": "2026-11-24"
+   "low": -0.002874,
+   "high": 0.065374,
+   "date": "2026-11-26"
   },
   {
    "listId": "2ed4d4b9d64f948f",
@@ -1151,7 +1151,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1163,13 +1163,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.010714,
-   "se": 0.015926,
-   "sd": 0.53298,
+   "mean": 0.013393,
+   "se": 0.015748,
+   "sd": 0.527017,
    "family": 3,
-   "low": -0.027412,
-   "high": 0.04884,
-   "date": "2026-11-24"
+   "low": -0.024307,
+   "high": 0.051092,
+   "date": "2026-11-26"
   },
   {
    "listId": "2ed4d4b9d64f948f",
@@ -1189,7 +1189,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1201,13 +1201,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.00625,
-   "se": 0.015237,
-   "sd": 0.509916,
+   "mean": -0.007143,
+   "se": 0.015522,
+   "sd": 0.519454,
    "family": 3,
-   "low": -0.030226,
-   "high": 0.042726,
-   "date": "2026-11-24"
+   "low": -0.044301,
+   "high": 0.030016,
+   "date": "2026-11-26"
   },
   {
    "listId": "2ed4d4b9d64f948f",
@@ -1239,7 +1239,7 @@
     "rockn_rockerboy"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1251,13 +1251,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.070536,
-   "se": 0.018511,
-   "sd": 0.619484,
+   "mean": 0.074107,
+   "se": 0.018281,
+   "sd": 0.611806,
    "family": 3,
-   "low": 0.026222,
-   "high": 0.11485,
-   "date": "2026-11-24"
+   "low": 0.030342,
+   "high": 0.117872,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1271,7 +1271,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1283,13 +1283,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.03125,
-   "se": 0.012942,
-   "sd": 0.433109,
+   "mean": 0.025893,
+   "se": 0.012952,
+   "sd": 0.433463,
    "family": 6,
-   "low": -0.002893,
-   "high": 0.065393,
-   "date": "2026-11-24"
+   "low": -0.008278,
+   "high": 0.060064,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1305,7 +1305,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1317,13 +1317,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.015179,
-   "se": 0.012401,
-   "sd": 0.415024,
+   "mean": -0.000893,
+   "se": 0.012601,
+   "sd": 0.421707,
    "family": 6,
-   "low": -0.017539,
-   "high": 0.047896,
-   "date": "2026-11-24"
+   "low": -0.034137,
+   "high": 0.032352,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1341,7 +1341,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1353,13 +1353,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.036607,
-   "se": 0.01641,
-   "sd": 0.549188,
+   "mean": 0.019643,
+   "se": 0.016796,
+   "sd": 0.56211,
    "family": 6,
-   "low": -0.006687,
-   "high": 0.079901,
-   "date": "2026-11-24"
+   "low": -0.02467,
+   "high": 0.063956,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1375,7 +1375,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1387,13 +1387,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.011607,
-   "se": 0.008228,
-   "sd": 0.275365,
+   "mean": 0.005357,
+   "se": 0.008087,
+   "sd": 0.270649,
    "family": 6,
-   "low": -0.010101,
-   "high": 0.033315,
-   "date": "2026-11-24"
+   "low": -0.015979,
+   "high": 0.026693,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1421,7 +1421,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1433,13 +1433,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.033929,
-   "se": 0.017881,
-   "sd": 0.598412,
+   "mean": 0.024107,
+   "se": 0.018401,
+   "sd": 0.61581,
    "family": 6,
-   "low": -0.013246,
-   "high": 0.081103,
-   "date": "2026-11-24"
+   "low": -0.024439,
+   "high": 0.072653,
+   "date": "2026-11-26"
   },
   {
    "listId": "3066980fc1c3c3a2",
@@ -1461,7 +1461,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1473,13 +1473,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.023214,
-   "se": 0.014163,
-   "sd": 0.473985,
+   "mean": 0.011607,
+   "se": 0.014537,
+   "sd": 0.486502,
    "family": 6,
-   "low": -0.014151,
-   "high": 0.06058,
-   "date": "2026-11-24"
+   "low": -0.026745,
+   "high": 0.04996,
+   "date": "2026-11-26"
   },
   {
    "listId": "3750a5b13c344cae",
@@ -1503,7 +1503,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1515,13 +1515,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.002679,
-   "se": 0.018153,
-   "sd": 0.607513,
+   "mean": 0.019643,
+   "se": 0.018253,
+   "sd": 0.61087,
    "family": 2,
-   "low": -0.043367,
-   "high": 0.038009,
-   "date": "2026-11-24"
+   "low": -0.02127,
+   "high": 0.060556,
+   "date": "2026-11-26"
   },
   {
    "listId": "3750a5b13c344cae",
@@ -1539,7 +1539,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1551,13 +1551,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0,
-   "se": 0.017999,
-   "sd": 0.602349,
+   "mean": 0.004464,
+   "se": 0.017617,
+   "sd": 0.589586,
    "family": 2,
-   "low": -0.040342,
-   "high": 0.040342,
-   "date": "2026-11-24"
+   "low": -0.035023,
+   "high": 0.043952,
+   "date": "2026-11-26"
   },
   {
    "listId": "37abde85ab86332b",
@@ -1579,7 +1579,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1591,13 +1591,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.079464,
-   "se": 0.017365,
-   "sd": 0.581151,
+   "mean": -0.072321,
+   "se": 0.01753,
+   "sd": 0.586672,
    "family": 2,
-   "low": -0.118387,
-   "high": -0.040542,
-   "date": "2026-11-24"
+   "low": -0.111614,
+   "high": -0.033029,
+   "date": "2026-11-26"
   },
   {
    "listId": "37abde85ab86332b",
@@ -1625,7 +1625,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1637,13 +1637,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.1125,
-   "se": 0.018215,
-   "sd": 0.609593,
+   "mean": 0.101786,
+   "se": 0.018228,
+   "sd": 0.610012,
    "family": 2,
-   "low": 0.071673,
-   "high": 0.153327,
-   "date": "2026-11-24"
+   "low": 0.06093,
+   "high": 0.142641,
+   "date": "2026-11-26"
   },
   {
    "listId": "3c8b6e839d55e071",
@@ -1663,7 +1663,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1675,13 +1675,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.025,
-   "se": 0.013288,
-   "sd": 0.444709,
+   "mean": 0.039286,
+   "se": 0.013075,
+   "sd": 0.43759,
    "family": 3,
-   "low": -0.006812,
-   "high": 0.056812,
-   "date": "2026-11-24"
+   "low": 0.007983,
+   "high": 0.070588,
+   "date": "2026-11-26"
   },
   {
    "listId": "3c8b6e839d55e071",
@@ -1699,7 +1699,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1711,13 +1711,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.038393,
-   "se": 0.013992,
-   "sd": 0.468249,
+   "mean": 0.020536,
+   "se": 0.013444,
+   "sd": 0.449931,
    "family": 3,
-   "low": 0.004897,
-   "high": 0.071889,
-   "date": "2026-11-24"
+   "low": -0.01165,
+   "high": 0.052721,
+   "date": "2026-11-26"
   },
   {
    "listId": "3c8b6e839d55e071",
@@ -1741,7 +1741,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1753,13 +1753,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.079464,
-   "se": 0.017319,
-   "sd": 0.579612,
+   "mean": 0.090179,
+   "se": 0.01704,
+   "sd": 0.570258,
    "family": 3,
-   "low": 0.038002,
-   "high": 0.120926,
-   "date": "2026-11-24"
+   "low": 0.049386,
+   "high": 0.130971,
+   "date": "2026-11-26"
   },
   {
    "listId": "3c962618a3babce7",
@@ -1779,7 +1779,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1791,13 +1791,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.148214,
-   "se": 0.014661,
-   "sd": 0.49066,
+   "mean": 0.141964,
+   "se": 0.015118,
+   "sd": 0.505932,
    "family": 2,
-   "low": 0.115352,
-   "high": 0.181076,
-   "date": "2026-11-24"
+   "low": 0.10808,
+   "high": 0.175849,
+   "date": "2026-11-26"
   },
   {
    "listId": "3c962618a3babce7",
@@ -1819,7 +1819,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1831,13 +1831,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.104464,
-   "se": 0.017971,
-   "sd": 0.601441,
+   "mean": 0.094643,
+   "se": 0.018522,
+   "sd": 0.619873,
    "family": 2,
-   "low": 0.064183,
-   "high": 0.144746,
-   "date": "2026-11-24"
+   "low": 0.053127,
+   "high": 0.136159,
+   "date": "2026-11-26"
   },
   {
    "listId": "3d6b0327f672d914",
@@ -1851,7 +1851,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1863,13 +1863,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.016071,
-   "se": 0.009184,
-   "sd": 0.307358,
+   "mean": -0.023214,
+   "se": 0.009428,
+   "sd": 0.315515,
    "family": 3,
-   "low": -0.038058,
-   "high": 0.005915,
-   "date": "2026-11-24"
+   "low": -0.045784,
+   "high": -0.000644,
+   "date": "2026-11-26"
   },
   {
    "listId": "3d6b0327f672d914",
@@ -1893,7 +1893,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1905,13 +1905,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.041071,
-   "se": 0.015526,
-   "sd": 0.519599,
+   "mean": 0.021429,
+   "se": 0.015458,
+   "sd": 0.517336,
    "family": 3,
-   "low": 0.003903,
-   "high": 0.07824,
-   "date": "2026-11-24"
+   "low": -0.015578,
+   "high": 0.058436,
+   "date": "2026-11-26"
   },
   {
    "listId": "3d6b0327f672d914",
@@ -1929,7 +1929,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1941,13 +1941,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.042857,
-   "se": 0.016372,
-   "sd": 0.547921,
+   "mean": 0.0375,
+   "se": 0.016237,
+   "sd": 0.543402,
    "family": 3,
-   "low": 0.003662,
-   "high": 0.082052,
-   "date": "2026-11-24"
+   "low": -0.001372,
+   "high": 0.076372,
+   "date": "2026-11-26"
   },
   {
    "listId": "51a1196a3827dcb4",
@@ -1965,7 +1965,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -1977,13 +1977,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.023214,
-   "se": 0.012677,
-   "sd": 0.424239,
+   "mean": 0.007143,
+   "se": 0.014122,
+   "sd": 0.472613,
    "family": 2,
-   "low": -0.005199,
-   "high": 0.051628,
-   "date": "2026-11-24"
+   "low": -0.02451,
+   "high": 0.038796,
+   "date": "2026-11-26"
   },
   {
    "listId": "51a1196a3827dcb4",
@@ -2011,7 +2011,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2023,13 +2023,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.084821,
-   "se": 0.018064,
-   "sd": 0.604527,
+   "mean": 0.066964,
+   "se": 0.018565,
+   "sd": 0.62132,
    "family": 2,
-   "low": 0.044333,
-   "high": 0.125309,
-   "date": "2026-11-24"
+   "low": 0.025352,
+   "high": 0.108577,
+   "date": "2026-11-26"
   },
   {
    "listId": "52592f87a5675ab9",
@@ -2047,7 +2047,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2059,13 +2059,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.044643,
-   "se": 0.015153,
-   "sd": 0.507115,
+   "mean": 0.023214,
+   "se": 0.01509,
+   "sd": 0.505021,
    "family": 2,
-   "low": 0.010679,
-   "high": 0.078607,
-   "date": "2026-11-24"
+   "low": -0.010609,
+   "high": 0.057038,
+   "date": "2026-11-26"
   },
   {
    "listId": "52592f87a5675ab9",
@@ -2093,7 +2093,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2105,13 +2105,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.078571,
-   "se": 0.017755,
-   "sd": 0.594197,
+   "mean": 0.069643,
+   "se": 0.017653,
+   "sd": 0.59079,
    "family": 2,
-   "low": 0.038775,
-   "high": 0.118368,
-   "date": "2026-11-24"
+   "low": 0.030075,
+   "high": 0.109211,
+   "date": "2026-11-26"
   },
   {
    "listId": "5331325a1a4e3b1e",
@@ -2135,7 +2135,7 @@
     "rockn_rockerboy"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2147,13 +2147,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.040179,
-   "se": 0.018201,
-   "sd": 0.609129,
+   "mean": -0.057143,
+   "se": 0.017738,
+   "sd": 0.593638,
    "family": 3,
-   "low": -0.083752,
-   "high": 0.003395,
-   "date": "2026-11-24"
+   "low": -0.099608,
+   "high": -0.014678,
+   "date": "2026-11-26"
   },
   {
    "listId": "5331325a1a4e3b1e",
@@ -2175,7 +2175,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2187,13 +2187,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.003571,
-   "se": 0.017865,
-   "sd": 0.597871,
+   "mean": -0.019643,
+   "se": 0.017855,
+   "sd": 0.597558,
    "family": 3,
-   "low": -0.046339,
-   "high": 0.039197,
-   "date": "2026-11-24"
+   "low": -0.062388,
+   "high": 0.023103,
+   "date": "2026-11-26"
   },
   {
    "listId": "5331325a1a4e3b1e",
@@ -2211,7 +2211,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2223,13 +2223,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.001786,
-   "se": 0.016519,
-   "sd": 0.552835,
+   "mean": -0.013393,
+   "se": 0.01649,
+   "sd": 0.551867,
    "family": 3,
-   "low": -0.037761,
-   "high": 0.041332,
-   "date": "2026-11-24"
+   "low": -0.05287,
+   "high": 0.026084,
+   "date": "2026-11-26"
   },
   {
    "listId": "5405cae11d7de95c",
@@ -2259,7 +2259,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2271,13 +2271,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.064286,
-   "se": 0.016839,
-   "sd": 0.563542,
+   "mean": 0.073214,
+   "se": 0.015778,
+   "sd": 0.528031,
    "family": 2,
-   "low": 0.026543,
-   "high": 0.102029,
-   "date": "2026-11-24"
+   "low": 0.03785,
+   "high": 0.108579,
+   "date": "2026-11-26"
   },
   {
    "listId": "5405cae11d7de95c",
@@ -2301,7 +2301,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2313,13 +2313,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.100893,
-   "se": 0.017901,
-   "sd": 0.599075,
+   "mean": 0.084821,
+   "se": 0.017662,
+   "sd": 0.591073,
    "family": 2,
-   "low": 0.06077,
-   "high": 0.141016,
-   "date": "2026-11-24"
+   "low": 0.045234,
+   "high": 0.124408,
+   "date": "2026-11-26"
   },
   {
    "listId": "550cfc2b7b685094",
@@ -2337,7 +2337,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2349,13 +2349,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.029464,
-   "se": 0.016664,
-   "sd": 0.557689,
+   "mean": 0.03125,
+   "se": 0.017087,
+   "sd": 0.571834,
    "family": 3,
-   "low": -0.010429,
-   "high": 0.069358,
-   "date": "2026-11-24"
+   "low": -0.009655,
+   "high": 0.072155,
+   "date": "2026-11-26"
   },
   {
    "listId": "550cfc2b7b685094",
@@ -2379,7 +2379,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2391,13 +2391,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.1875,
-   "se": 0.018012,
-   "sd": 0.602812,
+   "mean": 0.184821,
+   "se": 0.018015,
+   "sd": 0.602899,
    "family": 3,
-   "low": 0.144379,
-   "high": 0.230621,
-   "date": "2026-11-24"
+   "low": 0.141694,
+   "high": 0.227949,
+   "date": "2026-11-26"
   },
   {
    "listId": "550cfc2b7b685094",
@@ -2421,7 +2421,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2433,13 +2433,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.108036,
-   "se": 0.017411,
-   "sd": 0.582687,
+   "mean": 0.090179,
+   "se": 0.017502,
+   "sd": 0.585719,
    "family": 3,
-   "low": 0.066354,
-   "high": 0.149718,
-   "date": "2026-11-24"
+   "low": 0.04828,
+   "high": 0.132077,
+   "date": "2026-11-26"
   },
   {
    "listId": "59dc83d3008d81b9",
@@ -2463,7 +2463,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2475,13 +2475,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.0625,
-   "se": 0.017857,
-   "sd": 0.597601,
+   "mean": 0.073214,
+   "se": 0.018087,
+   "sd": 0.605306,
    "family": 3,
-   "low": 0.019751,
-   "high": 0.105249,
-   "date": "2026-11-24"
+   "low": 0.029914,
+   "high": 0.116514,
+   "date": "2026-11-26"
   },
   {
    "listId": "59dc83d3008d81b9",
@@ -2497,7 +2497,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2509,13 +2509,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.026786,
-   "se": 0.013757,
-   "sd": 0.460404,
+   "mean": 0.008929,
+   "se": 0.013951,
+   "sd": 0.466875,
    "family": 3,
-   "low": -0.006149,
-   "high": 0.05972,
-   "date": "2026-11-24"
+   "low": -0.024469,
+   "high": 0.042326,
+   "date": "2026-11-26"
   },
   {
    "listId": "59dc83d3008d81b9",
@@ -2539,7 +2539,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2551,13 +2551,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.139286,
-   "se": 0.018658,
-   "sd": 0.624401,
+   "mean": 0.148214,
+   "se": 0.018467,
+   "sd": 0.618017,
    "family": 3,
-   "low": 0.09462,
-   "high": 0.183951,
-   "date": "2026-11-24"
+   "low": 0.104005,
+   "high": 0.192423,
+   "date": "2026-11-26"
   },
   {
    "listId": "62c5a3ea2d0c5007",
@@ -2575,7 +2575,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2587,13 +2587,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.041071,
-   "se": 0.011921,
-   "sd": 0.398961,
+   "mean": 0.041964,
+   "se": 0.011544,
+   "sd": 0.386348,
    "family": 3,
-   "low": 0.012532,
-   "high": 0.069611,
-   "date": "2026-11-24"
+   "low": 0.014327,
+   "high": 0.069601,
+   "date": "2026-11-26"
   },
   {
    "listId": "62c5a3ea2d0c5007",
@@ -2619,7 +2619,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2631,13 +2631,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.009821,
-   "se": 0.016001,
-   "sd": 0.535506,
+   "mean": -0.010714,
+   "se": 0.016371,
+   "sd": 0.547862,
    "family": 3,
-   "low": -0.048128,
-   "high": 0.028485,
-   "date": "2026-11-24"
+   "low": -0.049905,
+   "high": 0.028476,
+   "date": "2026-11-26"
   },
   {
    "listId": "62c5a3ea2d0c5007",
@@ -2655,7 +2655,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2667,13 +2667,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.017857,
-   "se": 0.015411,
-   "sd": 0.515742,
+   "mean": 0.032143,
+   "se": 0.015596,
+   "sd": 0.521943,
    "family": 3,
-   "low": -0.019036,
-   "high": 0.05475,
-   "date": "2026-11-24"
+   "low": -0.005194,
+   "high": 0.069479,
+   "date": "2026-11-26"
   },
   {
    "listId": "693057e28a588ff7",
@@ -2691,7 +2691,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2703,13 +2703,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.090179,
-   "se": 0.016322,
-   "sd": 0.546246,
+   "mean": 0.059821,
+   "se": 0.016251,
+   "sd": 0.543868,
    "family": 3,
-   "low": 0.051104,
-   "high": 0.129254,
-   "date": "2026-11-24"
+   "low": 0.020916,
+   "high": 0.098726,
+   "date": "2026-11-26"
   },
   {
    "listId": "693057e28a588ff7",
@@ -2731,7 +2731,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2743,13 +2743,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.125,
-   "se": 0.01425,
-   "sd": 0.476902,
+   "mean": 0.119643,
+   "se": 0.014731,
+   "sd": 0.492996,
    "family": 3,
-   "low": 0.090885,
-   "high": 0.159115,
-   "date": "2026-11-24"
+   "low": 0.084377,
+   "high": 0.154909,
+   "date": "2026-11-26"
   },
   {
    "listId": "693057e28a588ff7",
@@ -2765,7 +2765,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2777,13 +2777,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.026786,
-   "se": 0.012607,
-   "sd": 0.421916,
+   "mean": 0.025893,
+   "se": 0.012703,
+   "sd": 0.425136,
    "family": 3,
-   "low": -0.003396,
-   "high": 0.056967,
-   "date": "2026-11-24"
+   "low": -0.004519,
+   "high": 0.056304,
+   "date": "2026-11-26"
   },
   {
    "listId": "6d239fa5c8c77c0b",
@@ -2805,7 +2805,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2817,13 +2817,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.1,
-   "se": 0.014915,
-   "sd": 0.49915,
+   "mean": 0.122321,
+   "se": 0.014953,
+   "sd": 0.500439,
    "family": 3,
-   "low": 0.064294,
-   "high": 0.135706,
-   "date": "2026-11-24"
+   "low": 0.086523,
+   "high": 0.15812,
+   "date": "2026-11-26"
   },
   {
    "listId": "6d239fa5c8c77c0b",
@@ -2839,7 +2839,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2851,13 +2851,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.054464,
-   "se": 0.015151,
-   "sd": 0.507035,
+   "mean": 0.066071,
+   "se": 0.015136,
+   "sd": 0.506535,
    "family": 3,
-   "low": 0.018194,
-   "high": 0.090734,
-   "date": "2026-11-24"
+   "low": 0.029837,
+   "high": 0.102306,
+   "date": "2026-11-26"
   },
   {
    "listId": "6d239fa5c8c77c0b",
@@ -2877,7 +2877,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2889,13 +2889,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.01875,
-   "se": 0.015122,
-   "sd": 0.50609,
+   "mean": 0.026786,
+   "se": 0.014872,
+   "sd": 0.497713,
    "family": 3,
-   "low": -0.017453,
-   "high": 0.054953,
-   "date": "2026-11-24"
+   "low": -0.008818,
+   "high": 0.062389,
+   "date": "2026-11-26"
   },
   {
    "listId": "6d567c9ca1c838d9",
@@ -2923,7 +2923,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2935,13 +2935,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.05625,
-   "se": 0.018251,
-   "sd": 0.610788,
+   "mean": -0.059821,
+   "se": 0.017843,
+   "sd": 0.597127,
    "family": 2,
-   "low": -0.097157,
-   "high": -0.015343,
-   "date": "2026-11-24"
+   "low": -0.099814,
+   "high": -0.019829,
+   "date": "2026-11-26"
   },
   {
    "listId": "6d567c9ca1c838d9",
@@ -2969,7 +2969,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -2981,13 +2981,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.075893,
-   "se": 0.018492,
-   "sd": 0.61885,
+   "mean": 0.059821,
+   "se": 0.018801,
+   "sd": 0.629192,
    "family": 2,
-   "low": 0.034446,
-   "high": 0.11734,
-   "date": "2026-11-24"
+   "low": 0.017682,
+   "high": 0.101961,
+   "date": "2026-11-26"
   },
   {
    "listId": "6f61514716df8e46",
@@ -3017,7 +3017,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3029,13 +3029,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.009821,
-   "se": 0.017156,
-   "sd": 0.574162,
+   "mean": -0.007143,
+   "se": 0.017134,
+   "sd": 0.573423,
    "family": 1,
-   "low": -0.023804,
-   "high": 0.043447,
-   "date": "2026-11-24"
+   "low": -0.040725,
+   "high": 0.02644,
+   "date": "2026-11-26"
   },
   {
    "listId": "709d7542b010cc30",
@@ -3065,7 +3065,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3077,13 +3077,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.002679,
-   "se": 0.014705,
-   "sd": 0.492111,
+   "mean": 0.010714,
+   "se": 0.014565,
+   "sd": 0.48744,
    "family": 4,
-   "low": -0.039406,
-   "high": 0.034049,
-   "date": "2026-11-24"
+   "low": -0.025665,
+   "high": 0.047093,
+   "date": "2026-11-26"
   },
   {
    "listId": "709d7542b010cc30",
@@ -3101,7 +3101,7 @@
     "alt_cunningham_mother_of_daemons"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3113,13 +3113,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.044643,
-   "se": 0.014173,
-   "sd": 0.474335,
+   "mean": 0.033929,
+   "se": 0.014697,
+   "sd": 0.491856,
    "family": 4,
-   "low": 0.009242,
-   "high": 0.080044,
-   "date": "2026-11-24"
+   "low": -0.00278,
+   "high": 0.070637,
+   "date": "2026-11-26"
   },
   {
    "listId": "709d7542b010cc30",
@@ -3137,7 +3137,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3149,13 +3149,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.05625,
-   "se": 0.014554,
-   "sd": 0.487059,
+   "mean": -0.048214,
+   "se": 0.014877,
+   "sd": 0.497892,
    "family": 4,
-   "low": -0.092601,
-   "high": -0.019899,
-   "date": "2026-11-24"
+   "low": -0.085374,
+   "high": -0.011055,
+   "date": "2026-11-26"
   },
   {
    "listId": "709d7542b010cc30",
@@ -3173,7 +3173,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3185,13 +3185,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.007143,
-   "se": 0.01521,
-   "sd": 0.509027,
+   "mean": -0.001786,
+   "se": 0.015316,
+   "sd": 0.512573,
    "family": 4,
-   "low": -0.045133,
-   "high": 0.030848,
-   "date": "2026-11-24"
+   "low": -0.040041,
+   "high": 0.036469,
+   "date": "2026-11-26"
   },
   {
    "listId": "70b7814bee9f69bc",
@@ -3215,7 +3215,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3227,13 +3227,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.094643,
-   "se": 0.017503,
-   "sd": 0.585777,
+   "mean": -0.10625,
+   "se": 0.017283,
+   "sd": 0.578399,
    "family": 5,
-   "low": -0.139729,
-   "high": -0.049557,
-   "date": "2026-11-24"
+   "low": -0.150768,
+   "high": -0.061732,
+   "date": "2026-11-26"
   },
   {
    "listId": "70b7814bee9f69bc",
@@ -3251,7 +3251,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3263,13 +3263,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.014286,
-   "se": 0.015414,
-   "sd": 0.515854,
+   "mean": -0.025893,
+   "se": 0.015007,
+   "sd": 0.502228,
    "family": 5,
-   "low": -0.05399,
-   "high": 0.025418,
-   "date": "2026-11-24"
+   "low": -0.064548,
+   "high": 0.012762,
+   "date": "2026-11-26"
   },
   {
    "listId": "70b7814bee9f69bc",
@@ -3287,7 +3287,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3299,13 +3299,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.025,
-   "se": 0.013408,
-   "sd": 0.44871,
+   "mean": -0.016964,
+   "se": 0.013209,
+   "sd": 0.442066,
    "family": 5,
-   "low": -0.059536,
-   "high": 0.009536,
-   "date": "2026-11-24"
+   "low": -0.050989,
+   "high": 0.01706,
+   "date": "2026-11-26"
   },
   {
    "listId": "70b7814bee9f69bc",
@@ -3327,7 +3327,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3339,13 +3339,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.032143,
-   "se": 0.017794,
-   "sd": 0.595517,
+   "mean": -0.027679,
+   "se": 0.017232,
+   "sd": 0.576686,
    "family": 5,
-   "low": -0.077978,
-   "high": 0.013693,
-   "date": "2026-11-24"
+   "low": -0.072065,
+   "high": 0.016708,
+   "date": "2026-11-26"
   },
   {
    "listId": "70b7814bee9f69bc",
@@ -3369,7 +3369,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3381,13 +3381,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.0625,
-   "se": 0.015096,
-   "sd": 0.505223,
+   "mean": -0.066071,
+   "se": 0.01503,
+   "sd": 0.502994,
    "family": 5,
-   "low": -0.101386,
-   "high": -0.023614,
-   "date": "2026-11-24"
+   "low": -0.104786,
+   "high": -0.027357,
+   "date": "2026-11-26"
   },
   {
    "listId": "779315ff7aa233e2",
@@ -3407,7 +3407,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3419,13 +3419,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.119643,
-   "se": 0.015727,
-   "sd": 0.526312,
+   "mean": 0.101786,
+   "se": 0.015687,
+   "sd": 0.524976,
    "family": 3,
-   "low": 0.081994,
-   "high": 0.157292,
-   "date": "2026-11-24"
+   "low": 0.064232,
+   "high": 0.139339,
+   "date": "2026-11-26"
   },
   {
    "listId": "779315ff7aa233e2",
@@ -3453,7 +3453,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3465,13 +3465,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.303571,
-   "se": 0.016098,
-   "sd": 0.538745,
+   "mean": 0.3,
+   "se": 0.016158,
+   "sd": 0.540744,
    "family": 3,
-   "low": 0.265033,
-   "high": 0.34211,
-   "date": "2026-11-24"
+   "low": 0.261319,
+   "high": 0.338681,
+   "date": "2026-11-26"
   },
   {
    "listId": "779315ff7aa233e2",
@@ -3495,7 +3495,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3507,13 +3507,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.124107,
-   "se": 0.017453,
-   "sd": 0.584082,
+   "mean": 0.130357,
+   "se": 0.017435,
+   "sd": 0.583484,
    "family": 3,
-   "low": 0.082326,
-   "high": 0.165889,
-   "date": "2026-11-24"
+   "low": 0.088618,
+   "high": 0.172096,
+   "date": "2026-11-26"
   },
   {
    "listId": "7cd8fe59c2bc6286",
@@ -3535,7 +3535,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3547,13 +3547,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.111607,
-   "se": 0.017437,
-   "sd": 0.583546,
+   "mean": 0.117857,
+   "se": 0.017469,
+   "sd": 0.584613,
    "family": 1,
-   "low": 0.077432,
-   "high": 0.145783,
-   "date": "2026-11-24"
+   "low": 0.083619,
+   "high": 0.152095,
+   "date": "2026-11-26"
   },
   {
    "listId": "7d4d4fa3bc95f94d",
@@ -3575,7 +3575,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3587,13 +3587,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.032143,
-   "se": 0.01605,
-   "sd": 0.537131,
+   "mean": 0.052679,
+   "se": 0.015876,
+   "sd": 0.531318,
    "family": 2,
-   "low": -0.003831,
-   "high": 0.068117,
-   "date": "2026-11-24"
+   "low": 0.017094,
+   "high": 0.088263,
+   "date": "2026-11-26"
   },
   {
    "listId": "7d4d4fa3bc95f94d",
@@ -3611,7 +3611,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3623,13 +3623,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.054464,
-   "se": 0.017947,
-   "sd": 0.600624,
+   "mean": 0.058929,
+   "se": 0.018001,
+   "sd": 0.602431,
    "family": 2,
-   "low": 0.014238,
-   "high": 0.094691,
-   "date": "2026-11-24"
+   "low": 0.018581,
+   "high": 0.099276,
+   "date": "2026-11-26"
   },
   {
    "listId": "7ebcd99ce021aac1",
@@ -3653,7 +3653,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3665,13 +3665,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.039286,
-   "se": 0.016813,
-   "sd": 0.562669,
+   "mean": 0.022321,
+   "se": 0.017469,
+   "sd": 0.584612,
    "family": 1,
-   "low": 0.006333,
-   "high": 0.072238,
-   "date": "2026-11-24"
+   "low": -0.011916,
+   "high": 0.056559,
+   "date": "2026-11-26"
   },
   {
    "listId": "8ae99326b1f93b7d",
@@ -3695,7 +3695,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3707,13 +3707,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.082143,
-   "se": 0.017006,
-   "sd": 0.569121,
+   "mean": 0.080357,
+   "se": 0.016919,
+   "sd": 0.566228,
    "family": 3,
-   "low": 0.041431,
-   "high": 0.122854,
-   "date": "2026-11-24"
+   "low": 0.039853,
+   "high": 0.120862,
+   "date": "2026-11-26"
   },
   {
    "listId": "8ae99326b1f93b7d",
@@ -3731,7 +3731,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3743,13 +3743,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.083929,
-   "se": 0.018045,
-   "sd": 0.603912,
+   "mean": 0.069643,
+   "se": 0.018319,
+   "sd": 0.61306,
    "family": 3,
-   "low": 0.040728,
-   "high": 0.127129,
-   "date": "2026-11-24"
+   "low": 0.025788,
+   "high": 0.113497,
+   "date": "2026-11-26"
   },
   {
    "listId": "8ae99326b1f93b7d",
@@ -3767,7 +3767,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3779,13 +3779,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.072321,
-   "se": 0.01545,
-   "sd": 0.517039,
+   "mean": 0.075,
+   "se": 0.015412,
+   "sd": 0.515792,
    "family": 3,
-   "low": 0.035336,
-   "high": 0.109307,
-   "date": "2026-11-24"
+   "low": 0.038103,
+   "high": 0.111897,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -3809,7 +3809,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3821,13 +3821,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.116071,
-   "se": 0.018063,
-   "sd": 0.604504,
+   "mean": 0.105357,
+   "se": 0.018166,
+   "sd": 0.607937,
    "family": 6,
-   "low": 0.068417,
-   "high": 0.163726,
-   "date": "2026-11-24"
+   "low": 0.057432,
+   "high": 0.153283,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -3847,7 +3847,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3859,13 +3859,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.015179,
-   "se": 0.016537,
-   "sd": 0.553438,
+   "mean": 0.007143,
+   "se": 0.016323,
+   "sd": 0.546287,
    "family": 6,
-   "low": -0.028451,
-   "high": 0.058808,
-   "date": "2026-11-24"
+   "low": -0.035923,
+   "high": 0.050208,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -3881,7 +3881,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3893,13 +3893,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.083036,
-   "se": 0.016209,
-   "sd": 0.542458,
+   "mean": 0.067857,
+   "se": 0.016588,
+   "sd": 0.555131,
    "family": 6,
-   "low": 0.040272,
-   "high": 0.125799,
-   "date": "2026-11-24"
+   "low": 0.024094,
+   "high": 0.11162,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -3919,7 +3919,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3931,13 +3931,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.134821,
-   "se": 0.018057,
-   "sd": 0.604305,
+   "mean": 0.133036,
+   "se": 0.018419,
+   "sd": 0.616411,
    "family": 6,
-   "low": 0.087182,
-   "high": 0.182461,
-   "date": "2026-11-24"
+   "low": 0.084442,
+   "high": 0.181629,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -3961,7 +3961,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -3973,13 +3973,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.150893,
-   "se": 0.01812,
-   "sd": 0.606414,
+   "mean": 0.122321,
+   "se": 0.018004,
+   "sd": 0.602528,
    "family": 6,
-   "low": 0.103087,
-   "high": 0.198698,
-   "date": "2026-11-24"
+   "low": 0.074822,
+   "high": 0.169821,
+   "date": "2026-11-26"
   },
   {
    "listId": "8de1592a4eb2eda2",
@@ -4003,7 +4003,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4015,13 +4015,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.08125,
-   "se": 0.018034,
-   "sd": 0.603539,
+   "mean": 0.088393,
+   "se": 0.017646,
+   "sd": 0.590549,
    "family": 6,
-   "low": 0.033671,
-   "high": 0.128829,
-   "date": "2026-11-24"
+   "low": 0.041838,
+   "high": 0.134948,
+   "date": "2026-11-26"
   },
   {
    "listId": "8f9412a543230da8",
@@ -4037,7 +4037,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4049,13 +4049,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.035714,
-   "se": 0.018449,
-   "sd": 0.61742,
+   "mean": 0.032143,
+   "se": 0.018627,
+   "sd": 0.623378,
    "family": 1,
-   "low": -0.000445,
-   "high": 0.071874,
-   "date": "2026-11-24"
+   "low": -0.004365,
+   "high": 0.068651,
+   "date": "2026-11-26"
   },
   {
    "listId": "95e79a39a67668bb",
@@ -4077,7 +4077,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4089,13 +4089,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.059821,
-   "se": 0.015753,
-   "sd": 0.527181,
+   "mean": 0.050893,
+   "se": 0.015679,
+   "sd": 0.524723,
    "family": 2,
-   "low": 0.024514,
-   "high": 0.095129,
-   "date": "2026-11-24"
+   "low": 0.01575,
+   "high": 0.086036,
+   "date": "2026-11-26"
   },
   {
    "listId": "95e79a39a67668bb",
@@ -4113,7 +4113,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4125,13 +4125,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.009821,
-   "se": 0.017524,
-   "sd": 0.586482,
+   "mean": 0.019643,
+   "se": 0.017676,
+   "sd": 0.591546,
    "family": 2,
-   "low": -0.029458,
-   "high": 0.049101,
-   "date": "2026-11-24"
+   "low": -0.019976,
+   "high": 0.059261,
+   "date": "2026-11-26"
   },
   {
    "listId": "98fac3c03fa4bae8",
@@ -4155,7 +4155,7 @@
     "towerfall"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4167,13 +4167,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.013393,
-   "se": 0.011605,
-   "sd": 0.388392,
+   "mean": 0.011607,
+   "se": 0.011607,
+   "sd": 0.388449,
    "family": 3,
-   "low": -0.01439,
-   "high": 0.041176,
-   "date": "2026-11-24"
+   "low": -0.01618,
+   "high": 0.039394,
+   "date": "2026-11-26"
   },
   {
    "listId": "98fac3c03fa4bae8",
@@ -4197,7 +4197,7 @@
     "three_mouths_one_desire"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4209,13 +4209,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.029464,
-   "se": 0.010868,
-   "sd": 0.363711,
+   "mean": 0.030357,
+   "se": 0.010829,
+   "sd": 0.362407,
    "family": 3,
-   "low": 0.003447,
-   "high": 0.055482,
-   "date": "2026-11-24"
+   "low": 0.004433,
+   "high": 0.056281,
+   "date": "2026-11-26"
   },
   {
    "listId": "98fac3c03fa4bae8",
@@ -4241,7 +4241,7 @@
     "westbrook_netrunner"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4253,13 +4253,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.010714,
-   "se": 0.011223,
-   "sd": 0.37561,
+   "mean": 0.0125,
+   "se": 0.010934,
+   "sd": 0.365912,
    "family": 3,
-   "low": -0.016155,
-   "high": 0.037583,
-   "date": "2026-11-24"
+   "low": -0.013675,
+   "high": 0.038675,
+   "date": "2026-11-26"
   },
   {
    "listId": "9f01127eb8f41dda",
@@ -4283,7 +4283,7 @@
     "modded_kusanagi"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4295,13 +4295,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.092857,
-   "se": 0.018006,
-   "sd": 0.602603,
+   "mean": 0.089286,
+   "se": 0.018067,
+   "sd": 0.604623,
    "family": 1,
-   "low": 0.057566,
-   "high": 0.128149,
-   "date": "2026-11-24"
+   "low": 0.053876,
+   "high": 0.124696,
+   "date": "2026-11-26"
   },
   {
    "listId": "b16b316cfec88abb",
@@ -4327,7 +4327,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4339,13 +4339,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.140179,
-   "se": 0.015446,
-   "sd": 0.51691,
+   "mean": 0.129464,
+   "se": 0.015733,
+   "sd": 0.526533,
    "family": 2,
-   "low": 0.105559,
-   "high": 0.174798,
-   "date": "2026-11-24"
+   "low": 0.0942,
+   "high": 0.164729,
+   "date": "2026-11-26"
   },
   {
    "listId": "b16b316cfec88abb",
@@ -4367,7 +4367,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4379,13 +4379,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.086607,
-   "se": 0.017009,
-   "sd": 0.569244,
+   "mean": 0.080357,
+   "se": 0.01743,
+   "sd": 0.583331,
    "family": 2,
-   "low": 0.048482,
-   "high": 0.124732,
-   "date": "2026-11-24"
+   "low": 0.041289,
+   "high": 0.119426,
+   "date": "2026-11-26"
   },
   {
    "listId": "b304c27396a06e82",
@@ -4415,7 +4415,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4427,13 +4427,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.136607,
-   "se": 0.018177,
-   "sd": 0.608327,
+   "mean": 0.120536,
+   "se": 0.018015,
+   "sd": 0.602888,
    "family": 2,
-   "low": 0.095865,
-   "high": 0.17735,
-   "date": "2026-11-24"
+   "low": 0.080157,
+   "high": 0.160914,
+   "date": "2026-11-26"
   },
   {
    "listId": "b304c27396a06e82",
@@ -4455,7 +4455,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4467,13 +4467,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.1,
-   "se": 0.018839,
-   "sd": 0.630474,
+   "mean": 0.09375,
+   "se": 0.018847,
+   "sd": 0.630727,
    "family": 2,
-   "low": 0.057774,
-   "high": 0.142226,
-   "date": "2026-11-24"
+   "low": 0.051507,
+   "high": 0.135993,
+   "date": "2026-11-26"
   },
   {
    "listId": "b52e36b761c5cc0c",
@@ -4489,7 +4489,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4501,13 +4501,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.028571,
-   "se": 0.017483,
-   "sd": 0.585104,
+   "mean": 0.022321,
+   "se": 0.017239,
+   "sd": 0.576918,
    "family": 2,
-   "low": -0.010616,
-   "high": 0.067759,
-   "date": "2026-11-24"
+   "low": -0.016318,
+   "high": 0.06096,
+   "date": "2026-11-26"
   },
   {
    "listId": "b52e36b761c5cc0c",
@@ -4531,7 +4531,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4543,13 +4543,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.200893,
-   "se": 0.016706,
-   "sd": 0.559106,
+   "mean": 0.210714,
+   "se": 0.017235,
+   "sd": 0.576786,
    "family": 2,
-   "low": 0.163447,
-   "high": 0.238339,
-   "date": "2026-11-24"
+   "low": 0.172084,
+   "high": 0.249344,
+   "date": "2026-11-26"
   },
   {
    "listId": "b9302aaa1c316aa8",
@@ -4571,7 +4571,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4583,13 +4583,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.057143,
-   "se": 0.013963,
-   "sd": 0.467288,
+   "mean": 0.036607,
+   "se": 0.014278,
+   "sd": 0.477837,
    "family": 2,
-   "low": 0.025846,
-   "high": 0.088439,
-   "date": "2026-11-24"
+   "low": 0.004604,
+   "high": 0.06861,
+   "date": "2026-11-26"
   },
   {
    "listId": "b9302aaa1c316aa8",
@@ -4613,7 +4613,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4625,13 +4625,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.133929,
-   "se": 0.017818,
-   "sd": 0.596318,
+   "mean": 0.119643,
+   "se": 0.017864,
+   "sd": 0.597857,
    "family": 2,
-   "low": 0.09399,
-   "high": 0.173867,
-   "date": "2026-11-24"
+   "low": 0.079602,
+   "high": 0.159684,
+   "date": "2026-11-26"
   },
   {
    "listId": "bbeb5b90ef8918e0",
@@ -4659,7 +4659,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4671,13 +4671,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.015179,
-   "se": 0.017971,
-   "sd": 0.601415,
+   "mean": 0.008036,
+   "se": 0.017796,
+   "sd": 0.595581,
    "family": 2,
-   "low": -0.025101,
-   "high": 0.055458,
-   "date": "2026-11-24"
+   "low": -0.031853,
+   "high": 0.047925,
+   "date": "2026-11-26"
   },
   {
    "listId": "bbeb5b90ef8918e0",
@@ -4699,7 +4699,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4711,13 +4711,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.100893,
-   "se": 0.018428,
-   "sd": 0.616716,
+   "mean": 0.099107,
+   "se": 0.017999,
+   "sd": 0.602348,
    "family": 2,
-   "low": 0.059588,
-   "high": 0.142197,
-   "date": "2026-11-24"
+   "low": 0.058765,
+   "high": 0.139449,
+   "date": "2026-11-26"
   },
   {
    "listId": "c2542795135c61d5",
@@ -4735,7 +4735,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4747,13 +4747,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.047321,
-   "se": 0.012648,
-   "sd": 0.423286,
+   "mean": 0.053571,
+   "se": 0.012657,
+   "sd": 0.423596,
    "family": 2,
-   "low": 0.018972,
-   "high": 0.075671,
-   "date": "2026-11-24"
+   "low": 0.025201,
+   "high": 0.081942,
+   "date": "2026-11-26"
   },
   {
    "listId": "c2542795135c61d5",
@@ -4771,7 +4771,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4783,13 +4783,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.064286,
-   "se": 0.017671,
-   "sd": 0.591398,
+   "mean": 0.061607,
+   "se": 0.017567,
+   "sd": 0.587895,
    "family": 2,
-   "low": 0.024677,
-   "high": 0.103894,
-   "date": "2026-11-24"
+   "low": 0.022233,
+   "high": 0.100981,
+   "date": "2026-11-26"
   },
   {
    "listId": "c98b1332deca6e62",
@@ -4807,7 +4807,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4819,13 +4819,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.061607,
-   "se": 0.011876,
-   "sd": 0.397433,
+   "mean": 0.059821,
+   "se": 0.011334,
+   "sd": 0.379304,
    "family": 3,
-   "low": 0.033177,
-   "high": 0.090037,
-   "date": "2026-11-24"
+   "low": 0.032688,
+   "high": 0.086954,
+   "date": "2026-11-26"
   },
   {
    "listId": "c98b1332deca6e62",
@@ -4849,7 +4849,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4861,13 +4861,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.051786,
-   "se": 0.017708,
-   "sd": 0.592624,
+   "mean": 0.052679,
+   "se": 0.017952,
+   "sd": 0.600783,
    "family": 3,
-   "low": 0.009393,
-   "high": 0.094178,
-   "date": "2026-11-24"
+   "low": 0.009702,
+   "high": 0.095655,
+   "date": "2026-11-26"
   },
   {
    "listId": "c98b1332deca6e62",
@@ -4885,7 +4885,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4897,13 +4897,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.069643,
-   "se": 0.016192,
-   "sd": 0.541873,
+   "mean": 0.072321,
+   "se": 0.016643,
+   "sd": 0.556979,
    "family": 3,
-   "low": 0.030881,
-   "high": 0.108405,
-   "date": "2026-11-24"
+   "low": 0.032479,
+   "high": 0.112164,
+   "date": "2026-11-26"
   },
   {
    "listId": "ca4bd3219b88e638",
@@ -4917,7 +4917,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4929,13 +4929,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.045536,
-   "se": 0.009894,
-   "sd": 0.331107,
+   "mean": 0.030357,
+   "se": 0.009825,
+   "sd": 0.328791,
    "family": 2,
-   "low": 0.02336,
-   "high": 0.067711,
-   "date": "2026-11-24"
+   "low": 0.008336,
+   "high": 0.052378,
+   "date": "2026-11-26"
   },
   {
    "listId": "ca4bd3219b88e638",
@@ -4959,7 +4959,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -4971,13 +4971,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.242857,
-   "se": 0.016027,
-   "sd": 0.536382,
+   "mean": 0.24375,
+   "se": 0.01599,
+   "sd": 0.535142,
    "family": 2,
-   "low": 0.206933,
-   "high": 0.278781,
-   "date": "2026-11-24"
+   "low": 0.207909,
+   "high": 0.279591,
+   "date": "2026-11-26"
   },
   {
    "listId": "caf8464ea0341531",
@@ -4999,7 +4999,7 @@
     "modded_kusanagi"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5011,13 +5011,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.069643,
-   "se": 0.017426,
-   "sd": 0.583178,
+   "mean": -0.0875,
+   "se": 0.01684,
+   "sd": 0.563584,
    "family": 1,
-   "low": -0.103797,
-   "high": -0.035489,
-   "date": "2026-11-24"
+   "low": -0.120506,
+   "high": -0.054494,
+   "date": "2026-11-26"
   },
   {
    "listId": "ce2f062981fe76d2",
@@ -5035,7 +5035,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5047,13 +5047,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.029464,
-   "se": 0.015317,
-   "sd": 0.512601,
+   "mean": -0.03125,
+   "se": 0.015725,
+   "sd": 0.52626,
    "family": 3,
-   "low": -0.066133,
-   "high": 0.007204,
-   "date": "2026-11-24"
+   "low": -0.068895,
+   "high": 0.006395,
+   "date": "2026-11-26"
   },
   {
    "listId": "ce2f062981fe76d2",
@@ -5081,7 +5081,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5093,13 +5093,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.140179,
-   "se": 0.017435,
-   "sd": 0.583503,
+   "mean": 0.157143,
+   "se": 0.017097,
+   "sd": 0.572175,
    "family": 3,
-   "low": 0.098438,
-   "high": 0.181919,
-   "date": "2026-11-24"
+   "low": 0.116213,
+   "high": 0.198073,
+   "date": "2026-11-26"
   },
   {
    "listId": "ce2f062981fe76d2",
@@ -5123,7 +5123,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5135,13 +5135,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.13125,
-   "se": 0.017497,
-   "sd": 0.585578,
+   "mean": 0.130357,
+   "se": 0.017481,
+   "sd": 0.585014,
    "family": 3,
-   "low": 0.089361,
-   "high": 0.173139,
-   "date": "2026-11-24"
+   "low": 0.088509,
+   "high": 0.172205,
+   "date": "2026-11-26"
   },
   {
    "listId": "d4c58ffe5fbbc984",
@@ -5171,7 +5171,7 @@
     "rockn_rockerboy"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5183,13 +5183,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.026786,
-   "se": 0.018462,
-   "sd": 0.617872,
+   "mean": 0.025893,
+   "se": 0.018268,
+   "sd": 0.611368,
    "family": 3,
-   "low": -0.017413,
-   "high": 0.070984,
-   "date": "2026-11-24"
+   "low": -0.017841,
+   "high": 0.069626,
+   "date": "2026-11-26"
   },
   {
    "listId": "d4c58ffe5fbbc984",
@@ -5213,7 +5213,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5225,13 +5225,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.069643,
-   "se": 0.017967,
-   "sd": 0.601285,
+   "mean": 0.054464,
+   "se": 0.017723,
+   "sd": 0.593137,
    "family": 3,
-   "low": 0.026631,
-   "high": 0.112655,
-   "date": "2026-11-24"
+   "low": 0.012035,
+   "high": 0.096894,
+   "date": "2026-11-26"
   },
   {
    "listId": "d4c58ffe5fbbc984",
@@ -5253,7 +5253,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5265,13 +5265,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.025893,
-   "se": 0.018442,
-   "sd": 0.617187,
+   "mean": -0.036607,
+   "se": 0.018382,
+   "sd": 0.615193,
    "family": 3,
-   "low": -0.070043,
-   "high": 0.018257,
-   "date": "2026-11-24"
+   "low": -0.080614,
+   "high": 0.0074,
+   "date": "2026-11-26"
   },
   {
    "listId": "d615ca2a4ad09bf8",
@@ -5297,7 +5297,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5309,13 +5309,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.071429,
-   "se": 0.017002,
-   "sd": 0.568998,
+   "mean": 0.066071,
+   "se": 0.017392,
+   "sd": 0.58206,
    "family": 2,
-   "low": 0.03332,
-   "high": 0.109537,
-   "date": "2026-11-24"
+   "low": 0.027088,
+   "high": 0.105055,
+   "date": "2026-11-26"
   },
   {
    "listId": "d615ca2a4ad09bf8",
@@ -5339,7 +5339,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5351,13 +5351,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.091964,
-   "se": 0.01689,
-   "sd": 0.565249,
+   "mean": 0.086607,
+   "se": 0.016868,
+   "sd": 0.564514,
    "family": 2,
-   "low": 0.054107,
-   "high": 0.129822,
-   "date": "2026-11-24"
+   "low": 0.048799,
+   "high": 0.124415,
+   "date": "2026-11-26"
   },
   {
    "listId": "dc379bb349a94491",
@@ -5375,7 +5375,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5387,13 +5387,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.044643,
-   "se": 0.018258,
-   "sd": 0.611016,
+   "mean": 0.038393,
+   "se": 0.018423,
+   "sd": 0.616535,
    "family": 3,
-   "low": 0.000935,
-   "high": 0.088351,
-   "date": "2026-11-24"
+   "low": -0.00571,
+   "high": 0.082496,
+   "date": "2026-11-26"
   },
   {
    "listId": "dc379bb349a94491",
@@ -5417,7 +5417,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5429,13 +5429,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.132143,
-   "se": 0.018141,
-   "sd": 0.607109,
+   "mean": 0.142857,
+   "se": 0.018418,
+   "sd": 0.616385,
    "family": 3,
-   "low": 0.088714,
-   "high": 0.175572,
-   "date": "2026-11-24"
+   "low": 0.098765,
+   "high": 0.18695,
+   "date": "2026-11-26"
   },
   {
    "listId": "dc379bb349a94491",
@@ -5457,7 +5457,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5469,13 +5469,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.088393,
-   "se": 0.017601,
-   "sd": 0.589034,
+   "mean": 0.082143,
+   "se": 0.01756,
+   "sd": 0.587662,
    "family": 3,
-   "low": 0.046257,
-   "high": 0.130529,
-   "date": "2026-11-24"
+   "low": 0.040105,
+   "high": 0.124181,
+   "date": "2026-11-26"
   },
   {
    "listId": "e0fad68dfe3df63f",
@@ -5495,7 +5495,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5507,13 +5507,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.026786,
-   "se": 0.0165,
-   "sd": 0.552188,
+   "mean": 0.009821,
+   "se": 0.016444,
+   "sd": 0.55032,
    "family": 2,
-   "low": -0.010197,
-   "high": 0.063768,
-   "date": "2026-11-24"
+   "low": -0.027036,
+   "high": 0.046679,
+   "date": "2026-11-26"
   },
   {
    "listId": "e0fad68dfe3df63f",
@@ -5537,7 +5537,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5549,13 +5549,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.073214,
-   "se": 0.016227,
-   "sd": 0.54305,
+   "mean": 0.057143,
+   "se": 0.016284,
+   "sd": 0.544977,
    "family": 2,
-   "low": 0.036844,
-   "high": 0.109585,
-   "date": "2026-11-24"
+   "low": 0.020643,
+   "high": 0.093643,
+   "date": "2026-11-26"
   },
   {
    "listId": "e52b6c067e61d51b",
@@ -5575,7 +5575,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5587,13 +5587,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.067857,
-   "se": 0.014204,
-   "sd": 0.475347,
+   "mean": 0.059821,
+   "se": 0.013809,
+   "sd": 0.462143,
    "family": 3,
-   "low": 0.033854,
-   "high": 0.10186,
-   "date": "2026-11-24"
+   "low": 0.026763,
+   "high": 0.09288,
+   "date": "2026-11-26"
   },
   {
    "listId": "e52b6c067e61d51b",
@@ -5613,7 +5613,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5625,13 +5625,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.120536,
-   "se": 0.016633,
-   "sd": 0.556646,
+   "mean": 0.108036,
+   "se": 0.016899,
+   "sd": 0.565565,
    "family": 3,
-   "low": 0.080717,
-   "high": 0.160355,
-   "date": "2026-11-24"
+   "low": 0.067579,
+   "high": 0.148493,
+   "date": "2026-11-26"
   },
   {
    "listId": "e52b6c067e61d51b",
@@ -5649,7 +5649,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5661,13 +5661,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.080357,
-   "se": 0.015179,
-   "sd": 0.507995,
+   "mean": 0.086607,
+   "se": 0.015227,
+   "sd": 0.509603,
    "family": 3,
-   "low": 0.044018,
-   "high": 0.116696,
-   "date": "2026-11-24"
+   "low": 0.050153,
+   "high": 0.123061,
+   "date": "2026-11-26"
   },
   {
    "listId": "e6ed5549e55a6bf2",
@@ -5691,7 +5691,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5703,13 +5703,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.028571,
-   "se": 0.017114,
-   "sd": 0.572755,
+   "mean": 0.0375,
+   "se": 0.017422,
+   "sd": 0.583068,
    "family": 5,
-   "low": -0.015512,
-   "high": 0.072655,
-   "date": "2026-11-24"
+   "low": -0.007377,
+   "high": 0.082377,
+   "date": "2026-11-26"
   },
   {
    "listId": "e6ed5549e55a6bf2",
@@ -5725,7 +5725,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5737,13 +5737,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.00625,
-   "se": 0.016446,
-   "sd": 0.550373,
+   "mean": 0.003571,
+   "se": 0.016854,
+   "sd": 0.564029,
    "family": 5,
-   "low": -0.036111,
-   "high": 0.048611,
-   "date": "2026-11-24"
+   "low": -0.039841,
+   "high": 0.046983,
+   "date": "2026-11-26"
   },
   {
    "listId": "e6ed5549e55a6bf2",
@@ -5765,7 +5765,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5777,13 +5777,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.125893,
-   "se": 0.017025,
-   "sd": 0.569754,
+   "mean": 0.108929,
+   "se": 0.017199,
+   "sd": 0.575576,
    "family": 5,
-   "low": 0.08204,
-   "high": 0.169745,
-   "date": "2026-11-24"
+   "low": 0.064628,
+   "high": 0.153229,
+   "date": "2026-11-26"
   },
   {
    "listId": "e6ed5549e55a6bf2",
@@ -5809,7 +5809,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5821,13 +5821,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.129464,
-   "se": 0.014629,
-   "sd": 0.489595,
+   "mean": 0.146429,
+   "se": 0.014786,
+   "sd": 0.494822,
    "family": 5,
-   "low": 0.091781,
-   "high": 0.167147,
-   "date": "2026-11-24"
+   "low": 0.108343,
+   "high": 0.184514,
+   "date": "2026-11-26"
   },
   {
    "listId": "e6ed5549e55a6bf2",
@@ -5851,7 +5851,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5863,13 +5863,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.032143,
-   "se": 0.017202,
-   "sd": 0.575678,
+   "mean": 0.041964,
+   "se": 0.017252,
+   "sd": 0.577372,
    "family": 5,
-   "low": -0.012166,
-   "high": 0.076451,
-   "date": "2026-11-24"
+   "low": -0.002475,
+   "high": 0.086403,
+   "date": "2026-11-26"
   },
   {
    "listId": "e719f7000704df41",
@@ -5887,7 +5887,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5899,13 +5899,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.057143,
-   "se": 0.013848,
-   "sd": 0.463448,
+   "mean": -0.052679,
+   "se": 0.014289,
+   "sd": 0.478204,
    "family": 5,
-   "low": -0.092813,
-   "high": -0.021472,
-   "date": "2026-11-24"
+   "low": -0.089485,
+   "high": -0.015872,
+   "date": "2026-11-26"
   },
   {
    "listId": "e719f7000704df41",
@@ -5923,7 +5923,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5935,13 +5935,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.051786,
-   "se": 0.015394,
-   "sd": 0.515182,
+   "mean": -0.041071,
+   "se": 0.015526,
+   "sd": 0.519599,
    "family": 5,
-   "low": -0.091438,
-   "high": -0.012133,
-   "date": "2026-11-24"
+   "low": -0.081064,
+   "high": -0.001079,
+   "date": "2026-11-26"
   },
   {
    "listId": "e719f7000704df41",
@@ -5959,7 +5959,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -5971,13 +5971,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.046429,
-   "se": 0.012808,
-   "sd": 0.428629,
+   "mean": -0.052679,
+   "se": 0.013003,
+   "sd": 0.435153,
    "family": 5,
-   "low": -0.079419,
-   "high": -0.013438,
-   "date": "2026-11-24"
+   "low": -0.086171,
+   "high": -0.019186,
+   "date": "2026-11-26"
   },
   {
    "listId": "e719f7000704df41",
@@ -6001,7 +6001,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6013,13 +6013,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.002679,
-   "se": 0.017019,
-   "sd": 0.569552,
+   "mean": 0.005357,
+   "se": 0.016995,
+   "sd": 0.568748,
    "family": 5,
-   "low": -0.046516,
-   "high": 0.041158,
-   "date": "2026-11-24"
+   "low": -0.038418,
+   "high": 0.049132,
+   "date": "2026-11-26"
   },
   {
    "listId": "e719f7000704df41",
@@ -6037,7 +6037,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6049,13 +6049,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.029464,
-   "se": 0.017136,
-   "sd": 0.573489,
+   "mean": -0.023214,
+   "se": 0.017307,
+   "sd": 0.579202,
    "family": 5,
-   "low": -0.073604,
-   "high": 0.014676,
-   "date": "2026-11-24"
+   "low": -0.067794,
+   "high": 0.021366,
+   "date": "2026-11-26"
   },
   {
    "listId": "e7b0b38e8ab5b225",
@@ -6077,7 +6077,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6089,13 +6089,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.267857,
-   "se": 0.018079,
-   "sd": 0.605045,
+   "mean": 0.285714,
+   "se": 0.017698,
+   "sd": 0.592304,
    "family": 1,
-   "low": 0.232423,
-   "high": 0.303292,
-   "date": "2026-11-24"
+   "low": 0.251026,
+   "high": 0.320403,
+   "date": "2026-11-26"
   },
   {
    "listId": "e8ce90dd0976dfb8",
@@ -6125,7 +6125,7 @@
     "viktor_vektor_drop_your_illusions"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6137,13 +6137,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.195536,
-   "se": 0.017325,
-   "sd": 0.579804,
+   "mean": 0.189286,
+   "se": 0.017179,
+   "sd": 0.574924,
    "family": 4,
-   "low": 0.152263,
-   "high": 0.238808,
-   "date": "2026-11-24"
+   "low": 0.146377,
+   "high": 0.232194,
+   "date": "2026-11-26"
   },
   {
    "listId": "e8ce90dd0976dfb8",
@@ -6167,7 +6167,7 @@
     "viktor_vektor_drop_your_illusions"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6179,13 +6179,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.01875,
-   "se": 0.017472,
-   "sd": 0.584738,
+   "mean": -0.004464,
+   "se": 0.017842,
+   "sd": 0.597117,
    "family": 4,
-   "low": -0.062391,
-   "high": 0.024891,
-   "date": "2026-11-24"
+   "low": -0.049029,
+   "high": 0.0401,
+   "date": "2026-11-26"
   },
   {
    "listId": "e8ce90dd0976dfb8",
@@ -6211,7 +6211,7 @@
     "trauma_team_operatives"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6223,13 +6223,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.14375,
-   "se": 0.015925,
-   "sd": 0.532967,
+   "mean": 0.141071,
+   "se": 0.016367,
+   "sd": 0.547731,
    "family": 4,
-   "low": 0.103973,
-   "high": 0.183527,
-   "date": "2026-11-24"
+   "low": 0.100192,
+   "high": 0.18195,
+   "date": "2026-11-26"
   },
   {
    "listId": "e8ce90dd0976dfb8",
@@ -6255,7 +6255,7 @@
     "viktor_vektor_drop_your_illusions"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6267,13 +6267,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.0375,
-   "se": 0.017377,
-   "sd": 0.581534,
+   "mean": 0.041071,
+   "se": 0.017507,
+   "sd": 0.585886,
    "family": 4,
-   "low": -0.005902,
-   "high": 0.080902,
-   "date": "2026-11-24"
+   "low": -0.002655,
+   "high": 0.084798,
+   "date": "2026-11-26"
   },
   {
    "listId": "ea9c3ecbf1a7f9de",
@@ -6291,7 +6291,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6303,13 +6303,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.14375,
-   "se": 0.017086,
-   "sd": 0.571795,
+   "mean": 0.145536,
+   "se": 0.017714,
+   "sd": 0.592836,
    "family": 1,
-   "low": 0.110263,
-   "high": 0.177237,
-   "date": "2026-11-24"
+   "low": 0.110816,
+   "high": 0.180255,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6325,7 +6325,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6337,13 +6337,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.05,
-   "se": 0.014979,
-   "sd": 0.501294,
+   "mean": -0.054464,
+   "se": 0.014992,
+   "sd": 0.50172,
    "family": 8,
-   "low": -0.090958,
-   "high": -0.009042,
-   "date": "2026-11-24"
+   "low": -0.095457,
+   "high": -0.013471,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6357,7 +6357,7 @@
     "alt_cunningham_mother_of_daemons"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6369,13 +6369,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.015179,
-   "se": 0.013917,
-   "sd": 0.465755,
+   "mean": 0.009821,
+   "se": 0.013979,
+   "sd": 0.467813,
    "family": 8,
-   "low": -0.022876,
-   "high": 0.053233,
-   "date": "2026-11-24"
+   "low": -0.028401,
+   "high": 0.048044,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6391,7 +6391,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6403,13 +6403,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.025,
-   "se": 0.011415,
-   "sd": 0.382013,
+   "mean": -0.024107,
+   "se": 0.011795,
+   "sd": 0.394725,
    "family": 8,
-   "low": -0.056212,
-   "high": 0.006212,
-   "date": "2026-11-24"
+   "low": -0.056358,
+   "high": 0.008144,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6427,7 +6427,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6439,13 +6439,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.008929,
-   "se": 0.016613,
-   "sd": 0.55599,
+   "mean": -0.002679,
+   "se": 0.016687,
+   "sd": 0.558461,
    "family": 8,
-   "low": -0.036499,
-   "high": 0.054356,
-   "date": "2026-11-24"
+   "low": -0.048308,
+   "high": 0.04295,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6461,7 +6461,7 @@
     "alt_cunningham_mother_of_daemons"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6473,13 +6473,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.014286,
-   "se": 0.009528,
-   "sd": 0.318861,
+   "mean": 0.017857,
+   "se": 0.008362,
+   "sd": 0.279862,
    "family": 8,
-   "low": -0.011767,
-   "high": 0.040338,
-   "date": "2026-11-24"
+   "low": -0.005009,
+   "high": 0.040723,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6497,7 +6497,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6509,13 +6509,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.001786,
-   "se": 0.014124,
-   "sd": 0.472663,
+   "mean": 0.004464,
+   "se": 0.014095,
+   "sd": 0.471699,
    "family": 8,
-   "low": -0.036833,
-   "high": 0.040405,
-   "date": "2026-11-24"
+   "low": -0.034076,
+   "high": 0.043004,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6533,7 +6533,7 @@
     "heywood_ripperdoc"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6545,13 +6545,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.016071,
-   "se": 0.014284,
-   "sd": 0.478035,
+   "mean": 0.014286,
+   "se": 0.013774,
+   "sd": 0.460962,
    "family": 8,
-   "low": -0.022986,
-   "high": 0.055129,
-   "date": "2026-11-24"
+   "low": -0.023377,
+   "high": 0.051949,
+   "date": "2026-11-26"
   },
   {
    "listId": "eb4d7d725ffe407d",
@@ -6573,7 +6573,7 @@
     "jackie_welles_ride_or_die_choom"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6585,13 +6585,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.022321,
-   "se": 0.014136,
-   "sd": 0.473084,
+   "mean": -0.016964,
+   "se": 0.014086,
+   "sd": 0.471415,
    "family": 8,
-   "low": -0.060975,
-   "high": 0.016332,
-   "date": "2026-11-24"
+   "low": -0.055481,
+   "high": 0.021553,
+   "date": "2026-11-26"
   },
   {
    "listId": "ed49b03d1aaca128",
@@ -6615,7 +6615,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6627,13 +6627,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.051786,
-   "se": 0.017618,
-   "sd": 0.5896,
+   "mean": 0.05,
+   "se": 0.017577,
+   "sd": 0.588237,
    "family": 3,
-   "low": 0.009609,
-   "high": 0.093962,
-   "date": "2026-11-24"
+   "low": 0.007921,
+   "high": 0.092079,
+   "date": "2026-11-26"
   },
   {
    "listId": "ed49b03d1aaca128",
@@ -6651,7 +6651,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6663,13 +6663,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.066071,
-   "se": 0.018504,
-   "sd": 0.619255,
+   "mean": 0.058929,
+   "se": 0.018824,
+   "sd": 0.629986,
    "family": 3,
-   "low": 0.021774,
-   "high": 0.110369,
-   "date": "2026-11-24"
+   "low": 0.013863,
+   "high": 0.103994,
+   "date": "2026-11-26"
   },
   {
    "listId": "ed49b03d1aaca128",
@@ -6687,7 +6687,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6699,13 +6699,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.064286,
-   "se": 0.015558,
-   "sd": 0.520682,
+   "mean": 0.0625,
+   "se": 0.015513,
+   "sd": 0.519181,
    "family": 3,
-   "low": 0.027039,
-   "high": 0.101532,
-   "date": "2026-11-24"
+   "low": 0.025361,
+   "high": 0.099639,
+   "date": "2026-11-26"
   },
   {
    "listId": "ee779ed4dea87217",
@@ -6723,7 +6723,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6735,13 +6735,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.014286,
-   "se": 0.015206,
-   "sd": 0.508877,
+   "mean": -0.008929,
+   "se": 0.015051,
+   "sd": 0.503705,
    "family": 4,
-   "low": -0.023693,
-   "high": 0.052265,
-   "date": "2026-11-24"
+   "low": -0.046522,
+   "high": 0.028665,
+   "date": "2026-11-26"
   },
   {
    "listId": "ee779ed4dea87217",
@@ -6763,7 +6763,7 @@
     "yorinobu_arasaka_steel_dragon"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6775,13 +6775,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.053571,
-   "se": 0.013861,
-   "sd": 0.463874,
+   "mean": -0.060714,
+   "se": 0.01412,
+   "sd": 0.472545,
    "family": 4,
-   "low": -0.088192,
-   "high": -0.018951,
-   "date": "2026-11-24"
+   "low": -0.095982,
+   "high": -0.025447,
+   "date": "2026-11-26"
   },
   {
    "listId": "ee779ed4dea87217",
@@ -6797,7 +6797,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6809,13 +6809,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.022321,
-   "se": 0.013851,
-   "sd": 0.463543,
+   "mean": 0.008036,
+   "se": 0.013807,
+   "sd": 0.462081,
    "family": 4,
-   "low": -0.012274,
-   "high": 0.056917,
-   "date": "2026-11-24"
+   "low": -0.026451,
+   "high": 0.042522,
+   "date": "2026-11-26"
   },
   {
    "listId": "ee779ed4dea87217",
@@ -6837,7 +6837,7 @@
     "minotaur"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6849,13 +6849,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.050893,
-   "se": 0.016229,
-   "sd": 0.543134,
+   "mean": 0.027679,
+   "se": 0.016279,
+   "sd": 0.544812,
    "family": 4,
-   "low": 0.010357,
-   "high": 0.091429,
-   "date": "2026-11-24"
+   "low": -0.012983,
+   "high": 0.06834,
+   "date": "2026-11-26"
   },
   {
    "listId": "f375b2d8199f4566",
@@ -6881,7 +6881,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6893,13 +6893,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.232143,
-   "se": 0.015514,
-   "sd": 0.519196,
+   "mean": 0.208929,
+   "se": 0.015188,
+   "sd": 0.508296,
    "family": 3,
-   "low": 0.195003,
-   "high": 0.269283,
-   "date": "2026-11-24"
+   "low": 0.172568,
+   "high": 0.245289,
+   "date": "2026-11-26"
   },
   {
    "listId": "f375b2d8199f4566",
@@ -6925,7 +6925,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6937,13 +6937,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.111607,
-   "se": 0.016496,
-   "sd": 0.552069,
+   "mean": 0.086607,
+   "se": 0.016726,
+   "sd": 0.559745,
    "family": 3,
-   "low": 0.072116,
-   "high": 0.151099,
-   "date": "2026-11-24"
+   "low": 0.046566,
+   "high": 0.126648,
+   "date": "2026-11-26"
   },
   {
    "listId": "f375b2d8199f4566",
@@ -6961,7 +6961,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -6973,13 +6973,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.065179,
-   "se": 0.015322,
-   "sd": 0.512787,
+   "mean": 0.047321,
+   "se": 0.015941,
+   "sd": 0.5335,
    "family": 3,
-   "low": 0.028497,
-   "high": 0.10186,
-   "date": "2026-11-24"
+   "low": 0.009158,
+   "high": 0.085485,
+   "date": "2026-11-26"
   },
   {
    "listId": "f399d36fac78a13b",
@@ -6999,7 +6999,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7011,13 +7011,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.058036,
-   "se": 0.014326,
-   "sd": 0.479451,
+   "mean": 0.071429,
+   "se": 0.014466,
+   "sd": 0.484141,
    "family": 3,
-   "low": 0.023739,
-   "high": 0.092333,
-   "date": "2026-11-24"
+   "low": 0.036796,
+   "high": 0.106061,
+   "date": "2026-11-26"
   },
   {
    "listId": "f399d36fac78a13b",
@@ -7041,7 +7041,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7053,13 +7053,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.001786,
-   "se": 0.017458,
-   "sd": 0.584271,
+   "mean": 0.019643,
+   "se": 0.017945,
+   "sd": 0.600542,
    "family": 3,
-   "low": -0.040009,
-   "high": 0.043581,
-   "date": "2026-11-24"
+   "low": -0.023316,
+   "high": 0.062602,
+   "date": "2026-11-26"
   },
   {
    "listId": "f399d36fac78a13b",
@@ -7081,7 +7081,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7093,13 +7093,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": -0.021429,
-   "se": 0.014166,
-   "sd": 0.474069,
+   "mean": -0.026786,
+   "se": 0.014214,
+   "sd": 0.475679,
    "family": 3,
-   "low": -0.055341,
-   "high": 0.012483,
-   "date": "2026-11-24"
+   "low": -0.060813,
+   "high": 0.007241,
+   "date": "2026-11-26"
   },
   {
    "listId": "f6bd56f9c63a5b11",
@@ -7117,7 +7117,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7129,13 +7129,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.069643,
-   "se": 0.012069,
-   "sd": 0.403922,
+   "mean": 0.075,
+   "se": 0.01324,
+   "sd": 0.443098,
    "family": 2,
-   "low": 0.04259,
-   "high": 0.096695,
-   "date": "2026-11-24"
+   "low": 0.045324,
+   "high": 0.104676,
+   "date": "2026-11-26"
   },
   {
    "listId": "f6bd56f9c63a5b11",
@@ -7149,7 +7149,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7161,13 +7161,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.051786,
-   "se": 0.011543,
-   "sd": 0.386312,
+   "mean": 0.061607,
+   "se": 0.012401,
+   "sd": 0.415032,
    "family": 2,
-   "low": 0.025913,
-   "high": 0.077659,
-   "date": "2026-11-24"
+   "low": 0.033811,
+   "high": 0.089404,
+   "date": "2026-11-26"
   },
   {
    "listId": "fad186051ca958b7",
@@ -7183,7 +7183,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7195,13 +7195,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.015179,
-   "se": 0.010522,
-   "sd": 0.352119,
+   "mean": 0.00625,
+   "se": 0.01068,
+   "sd": 0.357426,
    "family": 4,
-   "low": -0.011101,
-   "high": 0.041458,
-   "date": "2026-11-24"
+   "low": -0.020426,
+   "high": 0.032926,
+   "date": "2026-11-26"
   },
   {
    "listId": "fad186051ca958b7",
@@ -7227,7 +7227,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7239,13 +7239,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.041964,
-   "se": 0.017933,
-   "sd": 0.60014,
+   "mean": 0.0375,
+   "se": 0.01814,
+   "sd": 0.607096,
    "family": 4,
-   "low": -0.002826,
-   "high": 0.086755,
-   "date": "2026-11-24"
+   "low": -0.00781,
+   "high": 0.08281,
+   "date": "2026-11-26"
   },
   {
    "listId": "fad186051ca958b7",
@@ -7265,7 +7265,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7277,13 +7277,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.078571,
-   "se": 0.016974,
-   "sd": 0.568055,
+   "mean": 0.0625,
+   "se": 0.01708,
+   "sd": 0.571614,
    "family": 4,
-   "low": 0.036176,
-   "high": 0.120967,
-   "date": "2026-11-24"
+   "low": 0.019839,
+   "high": 0.105161,
+   "date": "2026-11-26"
   },
   {
    "listId": "fad186051ca958b7",
@@ -7311,7 +7311,7 @@
     "placide_voodoo_sentinel"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7323,13 +7323,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.080357,
-   "se": 0.017476,
-   "sd": 0.584861,
+   "mean": 0.066071,
+   "se": 0.017254,
+   "sd": 0.577436,
    "family": 4,
-   "low": 0.036707,
-   "high": 0.124007,
-   "date": "2026-11-24"
+   "low": 0.022976,
+   "high": 0.109167,
+   "date": "2026-11-26"
   },
   {
    "listId": "fcfee70ff247266a",
@@ -7359,7 +7359,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7371,13 +7371,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.110714,
-   "se": 0.01796,
-   "sd": 0.601065,
+   "mean": 0.125893,
+   "se": 0.017848,
+   "sd": 0.59732,
    "family": 2,
-   "low": 0.070458,
-   "high": 0.15097,
-   "date": "2026-11-24"
+   "low": 0.085888,
+   "high": 0.165898,
+   "date": "2026-11-26"
   },
   {
    "listId": "fcfee70ff247266a",
@@ -7399,7 +7399,7 @@
     "saul_bright_stormrider"
    ],
    "bot": "medium",
-   "simVersion": 9,
+   "simVersion": 13,
    "games": 1120,
    "seed": 9000000,
    "opponents": [
@@ -7411,13 +7411,13 @@
     "ee779ed4dea87217",
     "078ce02dba6dd2c0"
    ],
-   "mean": 0.074107,
-   "se": 0.017248,
-   "sd": 0.577233,
+   "mean": 0.080357,
+   "se": 0.017013,
+   "sd": 0.569376,
    "family": 2,
-   "low": 0.035447,
-   "high": 0.112767,
-   "date": "2026-11-24"
+   "low": 0.042223,
+   "high": 0.118491,
+   "date": "2026-11-26"
   }
  ],
  "skipped": [
@@ -7670,10 +7670,10 @@
  ],
  "manifest": {
   "schema": 1,
-  "runId": "package-effects:2026-11-24:9000000:medium",
-  "createdAt": "2026-11-24T00:00:00.000Z",
+  "runId": "package-effects:2026-11-26:9000000:medium",
+  "createdAt": "2026-11-26T00:00:00.000Z",
   "purpose": "analysis",
-  "simVersion": 9,
+  "simVersion": 13,
   "rulesVersion": "2026-10-29",
   "faqVersion": "2026-11-09T15:28:32.570Z",
   "errataVersion": null,
